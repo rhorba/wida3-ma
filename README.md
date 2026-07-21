@@ -9,7 +9,7 @@ No platform matches businesses needing flexible short-term storage with warehous
 Airbnb for warehouses — search by city/type/size, book by the week, integrated insurance and access-code handoff.
 
 ## Stack
-Java 21 + Spring Boot 3 (backend), React + TypeScript (frontend), PostgreSQL 16 + PostGIS, Docker/docker-compose (deployment). Payment gateway and object storage provider: TBD (see `docs/system-design-wida3-ma.md`).
+Java 21 + Spring Boot 3 (backend), React + TypeScript (frontend), PostgreSQL 16 + PostGIS, Docker/docker-compose (deployment, currently localhost standing in for a VPS). Payment: mock gateway for MVP. File storage: local disk volume for MVP (see `docs/architecture-wida3-ma.md` ADR-5/ADR-6).
 
 Full foundation docs: `docs/prd-wida3-ma.md`, `system-design-`, `architecture-`, `security-`, `database-`, `ux-`, `ui-`, `test-strategy-`, `devops-`, `stories-wida3-ma.md`.
 

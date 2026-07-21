@@ -87,8 +87,8 @@ CREATE TABLE bookings (
 CREATE TABLE payments (
   id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   booking_id        UUID NOT NULL UNIQUE REFERENCES bookings(id),
-  provider          VARCHAR(50),               -- TBD: gateway name once chosen
-  provider_ref      VARCHAR(255),               -- gateway's transaction id
+  provider          VARCHAR(50) NOT NULL DEFAULT 'MOCK', -- 'MOCK' for now; real gateway name once integrated
+  provider_ref      VARCHAR(255),               -- mock: generated fake ref; real gateway: its transaction id
   amount            NUMERIC(10,2) NOT NULL,
   status            VARCHAR(20) NOT NULL DEFAULT 'PENDING', -- PENDING, SUCCEEDED, FAILED, REFUNDED
   created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),

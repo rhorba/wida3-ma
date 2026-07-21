@@ -8,3 +8,6 @@
 - Payment (CMI) and file storage provider: deferred/TBD, to be decided before those features are built.
 - Git remote confirmed: https://github.com/rhorba/wida3-ma (no local .git yet — will init this session).
 - Sprint 1 scope: full foundation doc set, no code.
+
+## 2026-07-21 — Sprint 1 open items resolved
+- Mock payment gateway, local disk file storage, localhost-as-VPS deployment — all confirmed by user. Real gateway/object storage/VPS integration deferred to a pre-launch Epic 5 (stories 5.1, 5.2).

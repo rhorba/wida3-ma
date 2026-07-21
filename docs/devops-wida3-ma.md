@@ -6,9 +6,11 @@
 ## 1. Environment Strategy
 | Environment | Purpose | Deploy Trigger |
 |---|---|---|
-| local | Development (docker-compose up) | Manual |
-| staging | QA / Preview | Auto on PR merge to `main` |
-| production | Live users | Manual tag / approved release, deployed to the single VPS |
+| local | Development AND current "production" — `docker-compose up` on localhost | Manual |
+| staging | Deferred — no remote host provisioned yet | N/A |
+| production | Deferred — no remote host provisioned yet | N/A |
+
+There is currently one environment: your machine, running the full docker-compose stack. When a real VPS is provisioned later, re-introduce staging/production as separate deploy targets (the compose stack is written host-agnostically so this is a config change, not a rewrite).
 
 ## 2. CI Pipeline (GitHub Actions)
 ```yaml
@@ -17,16 +19,16 @@ stages:
   - test            # JUnit + Vitest, fail CI if combined coverage < 80%
   - security-scan   # SAST (Semgrep), SCA (Trivy for Maven/npm + Docker images), secrets (Gitleaks)
   - build           # Docker images: backend (Spring Boot jar) + frontend (static build served by Nginx)
-  - deploy-staging  # auto on PR merge to main
-  - deploy-prod     # manual approval gate, SSH + docker-compose pull/up on the VPS
+  # deploy stages omitted — nothing to deploy to remotely yet.
+  # Re-add deploy-staging / deploy-prod once a VPS exists.
 ```
 
 ## 3. Infrastructure
-- **Hosting**: Single VPS (provider TBD by user — e.g. OVH/DigitalOcean/Hetzner all fit a Morocco-adjacent low-latency budget setup)
+- **Hosting**: Localhost, via `docker-compose up`. No VPS provisioned yet — this stack is host-agnostic so moving it to a rented VPS later is a deploy-target change, not a redesign.
 - **Compute**: Docker containers via docker-compose (api, web, postgres, nginx)
-- **Database**: Self-hosted PostgreSQL 16 + PostGIS container, with a named volume + nightly `pg_dump` backup cron
-- **Secrets**: `.env` file on the VPS (never committed), populated from GitHub Actions secrets during deploy; see `.env.example` at repo root
-- **Monitoring**: Container logs (docker logs / `docker compose logs`) for MVP; simple external uptime check (e.g. UptimeRobot) on the public URL
+- **Database**: Self-hosted PostgreSQL 16 + PostGIS container, with a named volume. Backup: manual `pg_dump` for now (no scheduled cron until this runs somewhere persistent/always-on)
+- **Secrets**: local `.env` file (never committed) — see `.env.example` at repo root
+- **Monitoring**: Container logs (`docker compose logs`) only — no external uptime checker while running on localhost (nothing public to check)
 
 ## 4. Security Scanning Gates
 | Scanner | Scan Type | Fail Threshold |
@@ -57,10 +59,10 @@ services:
       SPRING_DATASOURCE_USERNAME: ${DB_USER}
       SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
       JWT_SECRET: ${JWT_SECRET}
-      PAYMENT_PROVIDER_KEY: ${PAYMENT_PROVIDER_KEY}   # TBD provider
-      FILE_STORAGE_ENDPOINT: ${FILE_STORAGE_ENDPOINT}  # TBD provider
-      FILE_STORAGE_KEY: ${FILE_STORAGE_KEY}
-      FILE_STORAGE_SECRET: ${FILE_STORAGE_SECRET}
+      PAYMENT_MODE: MOCK
+      FILE_STORAGE_PATH: /app/uploads
+    volumes:
+      - uploads:/app/uploads
     depends_on: [postgres]
     restart: unless-stopped
 
@@ -70,15 +72,16 @@ services:
 
   nginx:
     image: nginx:1.27-alpine
-    ports: ["443:443", "80:80"]
+    ports: ["8080:80"]                 # plain HTTP on localhost — no TLS cert needed until deployed to a real host
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./certs:/etc/nginx/certs:ro
+      - uploads:/usr/share/nginx/html/uploads:ro   # served as static files
     depends_on: [api, web]
     restart: unless-stopped
 
 volumes:
   pgdata:
+  uploads:
 ```
 
 ### backend/Dockerfile (outline)
@@ -108,9 +111,9 @@ COPY --from=build /app/dist /usr/share/nginx/html
 | Signal | Tool | Alert Threshold |
 |---|---|---|
 | Logs | docker compose logs (MVP) | Manual review; revisit centralized logging post-MVP |
-| Uptime | External uptime checker (e.g. UptimeRobot) | Downtime > 5 min |
+| Uptime | N/A — localhost only, nothing public to monitor | Add once deployed to a real host |
 | Latency | Deferred — no APM at MVP | Revisit if p99 NFR (docs/system-design) is at risk |
 
 ## Open Items
-- VPS provider not yet chosen by user.
-- Payment gateway and object storage provider not yet chosen — env vars above are named placeholders (`PAYMENT_PROVIDER_KEY`, `FILE_STORAGE_*`) pending that decision.
+- No VPS provisioned — running on localhost until one is chosen. Re-add staging/production environments and a deploy step when that happens.
+- Payment and file storage are mocked/local by design for MVP (see Architecture ADR-5/ADR-6) — both must become real integrations before accepting real users/money or deploying off a single host.

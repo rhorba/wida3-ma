@@ -45,4 +45,4 @@
 - [ ] Dependencies scanned in CI (SCA — see DevOps doc, Trivy for both Maven/npm dependencies and Docker images)
 
 ## Open Item
-Payment gateway and object storage provider are still TBD (see Architecture ADR/SDR notes). This document's payment/file-security requirements above are written provider-agnostically; revisit this doc once a provider is chosen to add provider-specific requirements (e.g. webhook signature verification for the payment gateway).
+Payment is a mock gateway and file storage is local disk for MVP (see Architecture ADR-5/ADR-6). No real card data or webhook exists yet, so provider-specific requirements (e.g. webhook signature verification) don't apply. **Before accepting real payments or deploying beyond localhost**, this doc must be revisited to add: real gateway webhook verification, and access controls appropriate to whatever storage replaces local disk.

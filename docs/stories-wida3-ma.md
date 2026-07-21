@@ -53,7 +53,7 @@ When I submit a listing with all required fields
 Then it is saved with status PENDING_APPROVAL
 ```
 
-**Technical Notes**: Uses `/api/v1/listings` POST, `listings` + `listing_photos` tables (Database doc §3). File upload uses pre-signed URL flow (Architecture §5) — blocked on storage provider decision.
+**Technical Notes**: Uses `/api/v1/listings` POST, `listings` + `listing_photos` tables (Database doc §3). File upload is direct multipart to local disk (Architecture ADR-6).
 
 **Dependencies**: 1.1
 
@@ -85,9 +85,9 @@ Renters book by the week and pay online; access codes are issued on confirmation
 
 **Acceptance Criteria**: see Test Strategy Feature "Booking a warehouse" (all 3 scenarios).
 
-**Technical Notes**: Server-calculates `total_price` (never trust client — Security Baseline §2 Tampering row). Blocked on payment provider decision (Architecture SDR-4).
+**Technical Notes**: Server-calculates `total_price` (never trust client — Security Baseline §2 Tampering row). Uses `MockPaymentServiceImpl` (Architecture ADR-5) — real gateway swap is a follow-up story, not part of this one.
 
-**Dependencies**: 2.2, payment provider decision
+**Dependencies**: 2.2
 
 ---
 
@@ -105,10 +105,22 @@ Renters book by the week and pay online; access codes are issued on confirmation
 
 **Dependencies**: 3.1
 
+## Epic 5: Launch Readiness (post-MVP, not scheduled yet)
+Replace the two MVP shortcuts (Architecture ADR-5, ADR-6) before real users/money are involved.
+
+### Story 5.1: Integrate real payment gateway
+**Priority**: Must-before-launch | **Size**: M | **Specialist**: Backend Dev + Security Engineer
+Replace `MockPaymentServiceImpl` with a real provider (e.g. CMI) behind the existing `PaymentService` interface. Requires a provider decision first.
+
+### Story 5.2: Move file storage off local disk
+**Priority**: Must-before-launch | **Size**: S | **Specialist**: Backend Dev + DevOps
+Replace local-disk `FileService` with S3-compatible object storage once deploying beyond a single localhost instance.
+
 ## Sprint Allocation
 | Sprint | Stories | Estimated Effort |
 |---|---|---|
 | Sprint 1 | Foundation docs only (this sprint — no code) | Done |
-| Sprint 2 | 1.1, 1.2, 2.1 | ~5-6 days (incl. payment/storage provider decision) |
+| Sprint 2 | 1.1, 1.2, 2.1 | ~4-5 days |
 | Sprint 3 | 2.2, 2.3, 3.1 | ~5-6 days |
 | Sprint 4 | 3.2, 4.1 + hardening/test-gap closure | ~3-4 days |
+| Later (pre-launch) | 5.1, 5.2 | Sized once a payment provider and hosting target are chosen |

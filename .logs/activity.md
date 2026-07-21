@@ -16,3 +16,7 @@
 - .env.example written with all identified env vars (DB, JWT, payment TBD, storage TBD, frontend API base URL)
 - README.md updated to reflect stack pivot
 - Status: awaiting user approval (VERIFY gate) before commit + push (SHIP)
+
+## 2026-07-21 — SHIP
+- 📝 PUSH: commit e8e3865 "docs: foundation documents for wida3-ma" → origin/main (https://github.com/rhorba/wida3-ma)
+- CI monitoring: N/A this sprint (no CI pipeline configured yet — CI pipeline itself is defined in docs/devops-wida3-ma.md, to be wired up when Sprint 2 code lands)
