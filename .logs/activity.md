@@ -20,3 +20,22 @@
 ## 2026-07-21 — SHIP
 - 📝 PUSH: commit e8e3865 "docs: foundation documents for wida3-ma" → origin/main (https://github.com/rhorba/wida3-ma)
 - CI monitoring: N/A this sprint (no CI pipeline configured yet — CI pipeline itself is defined in docs/devops-wida3-ma.md, to be wired up when Sprint 2 code lands)
+
+## 2026-07-21 — Doc correction SHIP
+- 📝 PUSH: commit c5d7dca "docs: resolve Sprint 1 open items" → origin/main
+
+## 2026-07-22 — Housekeeping
+- 📝 MILESTONE: relocated skills/ → .claude/.skills/ (confirmed intentional by user) and updated all skills/... path references in CLAUDE.md to .claude/.skills/... → commit 8e8c71e (not yet pushed, no sprint boundary crossed)
+
+## 2026-07-22 — Sprint 2, Story 1.1 (Backend Dev) — Batch 1: scaffold
+- Created backend/ Maven project (Spring Boot 3.3.4, Java 21) with Web, Data JPA, Security, Validation, Postgres, Flyway, JWT (jjwt), bucket4j (rate limiting), Testcontainers, JaCoCo
+- V1__initial_schema.sql: users (incl. failed_attempts/locked_until for the comprehensive lockout requirement — not in original DBA doc, added for this story's scope), roles, user_roles; V2__seed_roles.sql seeds OWNER/RENTER/ADMIN
+- users/roles JPA entities + repositories wired
+- application.yml wired to .env.example vars (JWT secret/TTL, datasource, lockout threshold)
+- Scope note: only auth tables created now (not full V1 schema from Database doc) — listings/bookings/etc. tables deferred to their own stories' migrations, per YAGNI
+
+## 2026-07-22 — Sprint 2, Story 1.1 — Batch 2+3: core logic, comprehensive extras, tests
+- AuthService: register (breach-list check via HIBP k-anonymity, EmailAlreadyRegistered/BreachedPassword errors) + login (BCrypt verify, JWT issuance, failed-attempt counter, account lockout after 5 attempts/15min)
+- JwtService (HMAC JWT issue/verify), AuthRateLimiter (per-IP bucket4j, 10 req/min on /auth/*), GlobalExceptionHandler (no internal leakage)
+- 📝 MILESTONE: VERIFY passed — 16/16 tests, 80% coverage, security self-check clean (see .logs/metrics.md for detail). One real bug found+fixed: transactional rollback was silently defeating the lockout feature.
+- Not yet done: commit/push (holding until Sprint 2's other stories — 1.2, 2.1 — land, matching Sprint 1's single-push-at-sprint-end pattern)

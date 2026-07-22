@@ -11,3 +11,6 @@
 
 ## 2026-07-21 — Sprint 1 open items resolved
 - Mock payment gateway, local disk file storage, localhost-as-VPS deployment — all confirmed by user. Real gateway/object storage/VPS integration deferred to a pre-launch Epic 5 (stories 5.1, 5.2).
+
+## 2026-07-22 — Story 1.1 approach
+- User chose 🔴 COMPREHENSIVE over 🟡 BALANCED (recommended) for Story 1.1 (registration/login): scaffold + BCrypt + breach-list password check + integration tests + rate-limiting on auth endpoints + account lockout after failed attempts. Lockout/rate-limiting go beyond the story's written acceptance criteria but were explicitly requested.
