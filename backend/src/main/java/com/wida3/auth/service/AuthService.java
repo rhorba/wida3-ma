@@ -3,6 +3,7 @@ package com.wida3.auth.service;
 import com.wida3.auth.dto.AuthResponse;
 import com.wida3.auth.dto.LoginRequest;
 import com.wida3.auth.dto.RegisterRequest;
+import com.wida3.auth.dto.TokenPair;
 import com.wida3.auth.entity.Role;
 import com.wida3.auth.entity.User;
 import com.wida3.auth.exception.AccountLockedException;
@@ -13,6 +14,7 @@ import com.wida3.auth.repository.RoleRepository;
 import com.wida3.auth.repository.UserRepository;
 import com.wida3.auth.security.JwtService;
 import com.wida3.auth.security.PasswordBreachChecker;
+import com.wida3.auth.security.RefreshTokenService;
 import java.time.Instant;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -29,6 +31,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final PasswordBreachChecker breachChecker;
     private final JwtService jwtService;
+    private final RefreshTokenService refreshTokenService;
     private final int maxFailedAttempts;
     private final long lockoutDurationMin;
 
@@ -38,6 +41,7 @@ public class AuthService {
             PasswordEncoder passwordEncoder,
             PasswordBreachChecker breachChecker,
             JwtService jwtService,
+            RefreshTokenService refreshTokenService,
             @Value("${app.auth.max-failed-attempts}") int maxFailedAttempts,
             @Value("${app.auth.lockout-duration-min}") long lockoutDurationMin) {
         this.userRepository = userRepository;
@@ -45,12 +49,13 @@ public class AuthService {
         this.passwordEncoder = passwordEncoder;
         this.breachChecker = breachChecker;
         this.jwtService = jwtService;
+        this.refreshTokenService = refreshTokenService;
         this.maxFailedAttempts = maxFailedAttempts;
         this.lockoutDurationMin = lockoutDurationMin;
     }
 
     @Transactional
-    public AuthResponse register(RegisterRequest request) {
+    public TokenPair register(RegisterRequest request) {
         if (userRepository.existsByEmail(request.email())) {
             throw new EmailAlreadyRegisteredException();
         }
@@ -70,13 +75,11 @@ public class AuthService {
 
         userRepository.save(user);
 
-        Set<String> roleNames = user.getRoles().stream().map(Role::getName).collect(Collectors.toSet());
-        String accessToken = jwtService.issueAccessToken(user.getEmail(), roleNames);
-        return new AuthResponse(accessToken, user.getEmail(), roleNames);
+        return issueTokenPair(user);
     }
 
     @Transactional(noRollbackFor = InvalidCredentialsException.class)
-    public AuthResponse login(LoginRequest request) {
+    public TokenPair login(LoginRequest request) {
         User user = userRepository.findByEmail(request.email())
                 .orElseThrow(InvalidCredentialsException::new);
 
@@ -95,9 +98,27 @@ public class AuthService {
             userRepository.save(user);
         }
 
+        return issueTokenPair(user);
+    }
+
+    @Transactional
+    public TokenPair refresh(String rawRefreshToken) {
+        RefreshTokenService.RotationResult rotation = refreshTokenService.validateAndRotate(rawRefreshToken);
+        User user = rotation.user();
         Set<String> roleNames = user.getRoles().stream().map(Role::getName).collect(Collectors.toSet());
         String accessToken = jwtService.issueAccessToken(user.getEmail(), roleNames);
-        return new AuthResponse(accessToken, user.getEmail(), roleNames);
+        return new TokenPair(new AuthResponse(accessToken, user.getEmail(), roleNames), rotation.rawToken());
+    }
+
+    public void logout(String rawRefreshToken) {
+        refreshTokenService.revoke(rawRefreshToken);
+    }
+
+    private TokenPair issueTokenPair(User user) {
+        Set<String> roleNames = user.getRoles().stream().map(Role::getName).collect(Collectors.toSet());
+        String accessToken = jwtService.issueAccessToken(user.getEmail(), roleNames);
+        String rawRefreshToken = refreshTokenService.issue(user);
+        return new TokenPair(new AuthResponse(accessToken, user.getEmail(), roleNames), rawRefreshToken);
     }
 
     private void registerFailedAttempt(User user) {

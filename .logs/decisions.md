@@ -14,3 +14,6 @@
 
 ## 2026-07-22 — Story 1.1 approach
 - User chose 🔴 COMPREHENSIVE over 🟡 BALANCED (recommended) for Story 1.1 (registration/login): scaffold + BCrypt + breach-list password check + integration tests + rate-limiting on auth endpoints + account lockout after failed attempts. Lockout/rate-limiting go beyond the story's written acceptance criteria but were explicitly requested.
+
+## 2026-07-22 — Story 1.2 scope
+- User chose "full stack now" over "backend only" for Story 1.2 (JWT refresh & logout): also scaffolding the React + TypeScript frontend project this session, rather than deferring it to a separate story/session.

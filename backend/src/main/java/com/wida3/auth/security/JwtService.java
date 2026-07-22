@@ -1,10 +1,12 @@
 package com.wida3.auth.security;
 
+import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.List;
 import java.util.Set;
 import javax.crypto.SecretKey;
 import org.springframework.beans.factory.annotation.Value;
@@ -35,11 +37,20 @@ public class JwtService {
     }
 
     public String extractSubject(String token) {
+        return parseClaims(token).getSubject();
+    }
+
+    @SuppressWarnings("unchecked")
+    public Set<String> extractRoles(String token) {
+        List<String> roles = parseClaims(token).get("roles", List.class);
+        return roles == null ? Set.of() : Set.copyOf(roles);
+    }
+
+    private Claims parseClaims(String token) {
         return Jwts.parser()
                 .verifyWith(key)
                 .build()
                 .parseSignedClaims(token)
-                .getPayload()
-                .getSubject();
+                .getPayload();
     }
 }

@@ -19,6 +19,7 @@ import com.wida3.auth.repository.RoleRepository;
 import com.wida3.auth.repository.UserRepository;
 import com.wida3.auth.security.JwtService;
 import com.wida3.auth.security.PasswordBreachChecker;
+import com.wida3.auth.security.RefreshTokenService;
 import com.wida3.auth.service.AuthService;
 import java.time.Instant;
 import java.util.Optional;
@@ -33,6 +34,7 @@ class AuthServiceTest {
     private PasswordEncoder passwordEncoder;
     private PasswordBreachChecker breachChecker;
     private JwtService jwtService;
+    private RefreshTokenService refreshTokenService;
     private AuthService authService;
 
     @BeforeEach
@@ -42,7 +44,9 @@ class AuthServiceTest {
         passwordEncoder = mock(PasswordEncoder.class);
         breachChecker = mock(PasswordBreachChecker.class);
         jwtService = mock(JwtService.class);
-        authService = new AuthService(userRepository, roleRepository, passwordEncoder, breachChecker, jwtService, 5, 15);
+        refreshTokenService = mock(RefreshTokenService.class);
+        authService = new AuthService(
+                userRepository, roleRepository, passwordEncoder, breachChecker, jwtService, refreshTokenService, 5, 15);
     }
 
     @Test
@@ -69,11 +73,13 @@ class AuthServiceTest {
         when(passwordEncoder.encode(any())).thenReturn("hashed");
         when(roleRepository.findByName("RENTER")).thenReturn(Optional.of(new Role("RENTER")));
         when(jwtService.issueAccessToken(any(), any())).thenReturn("token");
+        when(refreshTokenService.issue(any())).thenReturn("raw-refresh-token");
 
         RegisterRequest request = new RegisterRequest("new@example.com", "correcthorsebattery", "Name", null);
-        var response = authService.register(request);
+        var tokenPair = authService.register(request);
 
-        assertThat(response.accessToken()).isEqualTo("token");
+        assertThat(tokenPair.response().accessToken()).isEqualTo("token");
+        assertThat(tokenPair.rawRefreshToken()).isEqualTo("raw-refresh-token");
         verify(userRepository).save(any());
     }
 
@@ -123,11 +129,12 @@ class AuthServiceTest {
         when(userRepository.findByEmail("user@example.com")).thenReturn(Optional.of(user));
         when(passwordEncoder.matches(any(), any())).thenReturn(true);
         when(jwtService.issueAccessToken(any(), any())).thenReturn("token");
+        when(refreshTokenService.issue(any())).thenReturn("raw-refresh-token");
 
         LoginRequest request = new LoginRequest("user@example.com", "correcthorsebattery");
-        var response = authService.login(request);
+        var tokenPair = authService.login(request);
 
-        assertThat(response.accessToken()).isEqualTo("token");
+        assertThat(tokenPair.response().accessToken()).isEqualTo("token");
         assertThat(user.getFailedAttempts()).isEqualTo((short) 0);
     }
 }

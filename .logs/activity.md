@@ -38,4 +38,10 @@
 - AuthService: register (breach-list check via HIBP k-anonymity, EmailAlreadyRegistered/BreachedPassword errors) + login (BCrypt verify, JWT issuance, failed-attempt counter, account lockout after 5 attempts/15min)
 - JwtService (HMAC JWT issue/verify), AuthRateLimiter (per-IP bucket4j, 10 req/min on /auth/*), GlobalExceptionHandler (no internal leakage)
 - 📝 MILESTONE: VERIFY passed — 16/16 tests, 80% coverage, security self-check clean (see .logs/metrics.md for detail). One real bug found+fixed: transactional rollback was silently defeating the lockout feature.
-- Not yet done: commit/push (holding until Sprint 2's other stories — 1.2, 2.1 — land, matching Sprint 1's single-push-at-sprint-end pattern)
+- Committed locally: 2b1be09 (not pushed — holding until Sprint 2's other stories — 1.2, 2.1 — land, matching Sprint 1's single-push-at-sprint-end pattern)
+
+## 2026-07-22 — Sprint 2, Story 1.2 (Backend Dev + Frontend Dev): JWT refresh & logout
+- Backend: refresh_tokens table (V3 migration, opaque token stored as SHA-256 hash), RefreshTokenService (issue/rotate/revoke, reuse-detection revokes all active tokens for that user), JwtAuthFilter + SecurityConfig wiring (closes the risk logged after 1.1), /auth/refresh + /auth/logout endpoints, refresh cookie (httpOnly/Secure-configurable/SameSite=Strict) added to register+login responses
+- Frontend: Vite + React 19 + TypeScript scaffold under frontend/, API client with silent-refresh-on-401 retry, AuthContext (access token in memory only, per Security Baseline §3), minimal Login/Register/Dashboard pages
+- 📝 MILESTONE: VERIFY passed — 24/24 tests, 84% coverage, live manual E2E verification via curl (browser extension unavailable this session). Three real bugs found via live testing and fixed: 500-instead-of-405 on wrong HTTP method, 500-instead-of-404 on unmatched paths, 403-instead-of-401 on unauthenticated requests (this last one would have silently broken the frontend's silent-refresh feature — the whole point of this story). See .logs/metrics.md for detail.
+- Committed locally (not pushed yet, same sprint-end-push pattern as 1.1)

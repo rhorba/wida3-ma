@@ -21,6 +21,7 @@ app:
     secret: ${JWT_SECRET}
     access-token-ttl-min: ${JWT_ACCESS_TOKEN_TTL_MIN:15}
     refresh-token-ttl-days: ${JWT_REFRESH_TOKEN_TTL_DAYS:7}
+    refresh-cookie-secure: ${JWT_REFRESH_COOKIE_SECURE:true}
   auth:
     max-failed-attempts: 5
     lockout-duration-min: 15

@@ -4,13 +4,16 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.wida3.auth.dto.LoginRequest;
 import com.wida3.auth.dto.RegisterRequest;
-import org.junit.jupiter.api.BeforeAll;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.DynamicPropertyRegistry;
@@ -38,6 +41,7 @@ class AuthControllerIntegrationTest {
         registry.add("app.jwt.access-token-ttl-min", () -> 15);
         registry.add("app.jwt.refresh-token-ttl-days", () -> 7);
         registry.add("app.auth.rate-limit.capacity", () -> 1000);
+        registry.add("app.jwt.refresh-cookie-secure", () -> false);
     }
 
     @LocalServerPort
@@ -100,5 +104,93 @@ class AuthControllerIntegrationTest {
         LoginRequest correctLogin = new LoginRequest("erin@example.com", "correcthorsebattery");
         ResponseEntity<Object> response = restTemplate.postForEntity(url("/api/v1/auth/login"), correctLogin, Object.class);
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.LOCKED);
+    }
+
+    @Test
+    void refresh_withValidCookie_rotatesTokenAndReturnsNewAccessToken() {
+        RegisterRequest register = new RegisterRequest("frank@example.com", "correcthorsebattery", "Frank Renter", null);
+        ResponseEntity<Object> registerResponse = restTemplate.postForEntity(url("/api/v1/auth/register"), register, Object.class);
+        String refreshCookie = extractCookie(registerResponse);
+
+        ResponseEntity<Object> refreshResponse = postWithCookie("/api/v1/auth/refresh", refreshCookie);
+        assertThat(refreshResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(extractCookie(refreshResponse)).isNotEqualTo(refreshCookie);
+    }
+
+    @Test
+    void refresh_withoutCookie_returnsUnauthorized() {
+        ResponseEntity<Object> response = restTemplate.postForEntity(url("/api/v1/auth/refresh"), null, Object.class);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+    }
+
+    @Test
+    void refresh_reusingRotatedToken_returnsUnauthorized() {
+        RegisterRequest register = new RegisterRequest("grace@example.com", "correcthorsebattery", "Grace Renter", null);
+        ResponseEntity<Object> registerResponse = restTemplate.postForEntity(url("/api/v1/auth/register"), register, Object.class);
+        String originalCookie = extractCookie(registerResponse);
+
+        postWithCookie("/api/v1/auth/refresh", originalCookie);
+
+        ResponseEntity<Object> reuseResponse = postWithCookie("/api/v1/auth/refresh", originalCookie);
+        assertThat(reuseResponse.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+    }
+
+    @Test
+    void logout_thenRefresh_returnsUnauthorized() {
+        RegisterRequest register = new RegisterRequest("heidi@example.com", "correcthorsebattery", "Heidi Renter", null);
+        ResponseEntity<Object> registerResponse = restTemplate.postForEntity(url("/api/v1/auth/register"), register, Object.class);
+        String refreshCookie = extractCookie(registerResponse);
+
+        ResponseEntity<Object> logoutResponse = postWithCookie("/api/v1/auth/logout", refreshCookie);
+        assertThat(logoutResponse.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
+
+        ResponseEntity<Object> refreshResponse = postWithCookie("/api/v1/auth/refresh", refreshCookie);
+        assertThat(refreshResponse.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+    }
+
+    @Test
+    void wrongHttpMethod_returnsMethodNotAllowedNotServerError() {
+        ResponseEntity<Object> response = restTemplate.getForEntity(url("/api/v1/auth/login"), Object.class);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.METHOD_NOT_ALLOWED);
+    }
+
+    @Test
+    void unknownPathUnderPermitAllPrefix_returnsNotFoundNotServerError() {
+        ResponseEntity<Object> response = restTemplate.getForEntity(url("/api/v1/auth/does-not-exist"), Object.class);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+    }
+
+    @Test
+    void protectedPath_withoutToken_returnsUnauthorizedNotForbidden() {
+        ResponseEntity<Object> response = restTemplate.getForEntity(url("/api/v1/some-protected-thing"), Object.class);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+    }
+
+    @Test
+    void protectedPath_withValidToken_passesSecurityLayer() {
+        RegisterRequest register = new RegisterRequest("ivan@example.com", "correcthorsebattery", "Ivan Renter", null);
+        ResponseEntity<java.util.Map> registerResponse =
+                restTemplate.postForEntity(url("/api/v1/auth/register"), register, java.util.Map.class);
+        String token = (String) registerResponse.getBody().get("accessToken");
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(token);
+        ResponseEntity<Object> response = restTemplate.exchange(
+                url("/api/v1/some-protected-thing"), HttpMethod.GET, new HttpEntity<>(headers), Object.class);
+        // Passes the security layer (authenticated) — 404 because no such controller exists, not 401/403.
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+    }
+
+    private ResponseEntity<Object> postWithCookie(String path, String cookie) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.add(HttpHeaders.COOKIE, cookie);
+        return restTemplate.exchange(url(path), HttpMethod.POST, new HttpEntity<>(headers), Object.class);
+    }
+
+    private String extractCookie(ResponseEntity<?> response) {
+        List<String> setCookieHeaders = response.getHeaders().get(HttpHeaders.SET_COOKIE);
+        assertThat(setCookieHeaders).isNotNull().isNotEmpty();
+        String setCookie = setCookieHeaders.get(0);
+        return setCookie.substring(0, setCookie.indexOf(';'));
     }
 }
