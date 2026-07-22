@@ -17,3 +17,10 @@
 
 ## 2026-07-22 — Story 1.2 scope
 - User chose "full stack now" over "backend only" for Story 1.2 (JWT refresh & logout): also scaffolding the React + TypeScript frontend project this session, rather than deferring it to a separate story/session.
+
+## 2026-07-22 — Owner role assignment (gap found ahead of Story 2.1)
+- No story previously covered how a user gets the OWNER role (Story 1.1 only auto-assigns RENTER). User chose: let registration pick role(s) — an optional `roles` field on /auth/register lets a user self-select OWNER in addition to the default RENTER. ADMIN is never self-selectable (security boundary — admin remains assigned out-of-band only).
+
+## 2026-07-22 — Story 2.1 approach + schema deviation
+- User chose 🔴 COMPREHENSIVE for Story 2.1 (Owner creates a listing): listing creation + file upload with content-type/size validation + max-photo-count limit + frontend Create Listing form + full integration test coverage.
+- Deviation from Database doc: deferring the `listings.location GEOGRAPHY(POINT,4326)` PostGIS column — no Postgres instance in this project runs the PostGIS extension yet, and this story's acceptance criteria don't need geo-search (that's a later story). Column will be added via its own migration when geo-search is actually built, matching the incremental-migration pattern already agreed for the auth tables.

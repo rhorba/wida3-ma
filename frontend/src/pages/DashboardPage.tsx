@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { apiFetch } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
+import { CreateListingForm } from "../listings/CreateListingForm";
 
 export function DashboardPage() {
   const { user, logout } = useAuth();
@@ -20,6 +21,7 @@ export function DashboardPage() {
       <button onClick={handleForceRefresh}>Force refresh</button>
       {refreshResult && <p>{refreshResult}</p>}
       <button onClick={() => logout()}>Log out</button>
+      {user?.roles.includes("OWNER") && <CreateListingForm />}
     </div>
   );
 }

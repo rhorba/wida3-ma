@@ -56,7 +56,7 @@ class AuthControllerIntegrationTest {
 
     @Test
     void registerThenLogin_succeeds() {
-        RegisterRequest register = new RegisterRequest("alice@example.com", "correcthorsebattery", "Alice Renter", null);
+        RegisterRequest register = new RegisterRequest("alice@example.com", "correcthorsebattery", "Alice Renter", null, null);
         ResponseEntity<Object> registerResponse = restTemplate.postForEntity(url("/api/v1/auth/register"), register, Object.class);
         assertThat(registerResponse.getStatusCode()).isEqualTo(HttpStatus.CREATED);
 
@@ -67,7 +67,7 @@ class AuthControllerIntegrationTest {
 
     @Test
     void register_duplicateEmail_returnsConflict() {
-        RegisterRequest register = new RegisterRequest("bob@example.com", "correcthorsebattery", "Bob Renter", null);
+        RegisterRequest register = new RegisterRequest("bob@example.com", "correcthorsebattery", "Bob Renter", null, null);
         restTemplate.postForEntity(url("/api/v1/auth/register"), register, Object.class);
 
         ResponseEntity<Object> secondAttempt = restTemplate.postForEntity(url("/api/v1/auth/register"), register, Object.class);
@@ -76,14 +76,14 @@ class AuthControllerIntegrationTest {
 
     @Test
     void register_shortPassword_returnsBadRequest() {
-        RegisterRequest register = new RegisterRequest("carol@example.com", "short", "Carol Renter", null);
+        RegisterRequest register = new RegisterRequest("carol@example.com", "short", "Carol Renter", null, null);
         ResponseEntity<Object> response = restTemplate.postForEntity(url("/api/v1/auth/register"), register, Object.class);
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
     }
 
     @Test
     void login_wrongPassword_returnsUnauthorized() {
-        RegisterRequest register = new RegisterRequest("dave@example.com", "correcthorsebattery", "Dave Renter", null);
+        RegisterRequest register = new RegisterRequest("dave@example.com", "correcthorsebattery", "Dave Renter", null, null);
         restTemplate.postForEntity(url("/api/v1/auth/register"), register, Object.class);
 
         LoginRequest badLogin = new LoginRequest("dave@example.com", "wrongpassword");
@@ -93,7 +93,7 @@ class AuthControllerIntegrationTest {
 
     @Test
     void login_afterFiveFailedAttempts_locksAccount() {
-        RegisterRequest register = new RegisterRequest("erin@example.com", "correcthorsebattery", "Erin Renter", null);
+        RegisterRequest register = new RegisterRequest("erin@example.com", "correcthorsebattery", "Erin Renter", null, null);
         restTemplate.postForEntity(url("/api/v1/auth/register"), register, Object.class);
 
         LoginRequest badLogin = new LoginRequest("erin@example.com", "wrongpassword");
@@ -108,7 +108,7 @@ class AuthControllerIntegrationTest {
 
     @Test
     void refresh_withValidCookie_rotatesTokenAndReturnsNewAccessToken() {
-        RegisterRequest register = new RegisterRequest("frank@example.com", "correcthorsebattery", "Frank Renter", null);
+        RegisterRequest register = new RegisterRequest("frank@example.com", "correcthorsebattery", "Frank Renter", null, null);
         ResponseEntity<Object> registerResponse = restTemplate.postForEntity(url("/api/v1/auth/register"), register, Object.class);
         String refreshCookie = extractCookie(registerResponse);
 
@@ -125,7 +125,7 @@ class AuthControllerIntegrationTest {
 
     @Test
     void refresh_reusingRotatedToken_returnsUnauthorized() {
-        RegisterRequest register = new RegisterRequest("grace@example.com", "correcthorsebattery", "Grace Renter", null);
+        RegisterRequest register = new RegisterRequest("grace@example.com", "correcthorsebattery", "Grace Renter", null, null);
         ResponseEntity<Object> registerResponse = restTemplate.postForEntity(url("/api/v1/auth/register"), register, Object.class);
         String originalCookie = extractCookie(registerResponse);
 
@@ -137,7 +137,7 @@ class AuthControllerIntegrationTest {
 
     @Test
     void logout_thenRefresh_returnsUnauthorized() {
-        RegisterRequest register = new RegisterRequest("heidi@example.com", "correcthorsebattery", "Heidi Renter", null);
+        RegisterRequest register = new RegisterRequest("heidi@example.com", "correcthorsebattery", "Heidi Renter", null, null);
         ResponseEntity<Object> registerResponse = restTemplate.postForEntity(url("/api/v1/auth/register"), register, Object.class);
         String refreshCookie = extractCookie(registerResponse);
 
@@ -168,7 +168,7 @@ class AuthControllerIntegrationTest {
 
     @Test
     void protectedPath_withValidToken_passesSecurityLayer() {
-        RegisterRequest register = new RegisterRequest("ivan@example.com", "correcthorsebattery", "Ivan Renter", null);
+        RegisterRequest register = new RegisterRequest("ivan@example.com", "correcthorsebattery", "Ivan Renter", null, null);
         ResponseEntity<java.util.Map> registerResponse =
                 restTemplate.postForEntity(url("/api/v1/auth/register"), register, java.util.Map.class);
         String token = (String) registerResponse.getBody().get("accessToken");

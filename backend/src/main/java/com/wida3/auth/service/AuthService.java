@@ -10,6 +10,7 @@ import com.wida3.auth.exception.AccountLockedException;
 import com.wida3.auth.exception.BreachedPasswordException;
 import com.wida3.auth.exception.EmailAlreadyRegisteredException;
 import com.wida3.auth.exception.InvalidCredentialsException;
+import com.wida3.auth.exception.InvalidRoleRequestException;
 import com.wida3.auth.repository.RoleRepository;
 import com.wida3.auth.repository.UserRepository;
 import com.wida3.auth.security.JwtService;
@@ -25,6 +26,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class AuthService {
+
+    private static final Set<String> SELF_ASSIGNABLE_ROLES = Set.of("OWNER", "RENTER");
 
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
@@ -63,15 +66,25 @@ public class AuthService {
             throw new BreachedPasswordException();
         }
 
+        for (String requested : request.roles()) {
+            if (!SELF_ASSIGNABLE_ROLES.contains(requested)) {
+                throw new InvalidRoleRequestException(requested);
+            }
+        }
+
         User user = new User(
                 request.email(),
                 passwordEncoder.encode(request.password()),
                 request.fullName(),
                 request.phone());
 
-        Role renterRole = roleRepository.findByName("RENTER")
-                .orElseThrow(() -> new IllegalStateException("RENTER role not seeded"));
-        user.addRole(renterRole);
+        Set<String> rolesToGrant = new java.util.HashSet<>(request.roles());
+        rolesToGrant.add("RENTER");
+        for (String roleName : rolesToGrant) {
+            Role role = roleRepository.findByName(roleName)
+                    .orElseThrow(() -> new IllegalStateException(roleName + " role not seeded"));
+            user.addRole(role);
+        }
 
         userRepository.save(user);
 

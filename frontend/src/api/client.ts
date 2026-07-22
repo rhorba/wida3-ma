@@ -34,12 +34,15 @@ async function refreshAccessToken(): Promise<boolean> {
 export async function apiFetch(path: string, options: RequestInit = {}): Promise<Response> {
   const isAuthEndpoint = path.startsWith("/auth/");
 
+  const isFormData = options.body instanceof FormData;
+
   const doFetch = () =>
     fetch(`${BASE_URL}${path}`, {
       ...options,
       credentials: "include",
       headers: {
-        "Content-Type": "application/json",
+        // FormData bodies must NOT set Content-Type — the browser adds the multipart boundary itself.
+        ...(isFormData ? {} : { "Content-Type": "application/json" }),
         ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
         ...options.headers,
       },

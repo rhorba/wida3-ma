@@ -8,7 +8,12 @@ interface AuthUser {
 
 interface AuthContextValue {
   user: AuthUser | null;
-  register: (email: string, password: string, fullName: string) => Promise<string | null>;
+  register: (
+    email: string,
+    password: string,
+    fullName: string,
+    wantsOwner: boolean,
+  ) => Promise<string | null>;
   login: (email: string, password: string) => Promise<string | null>;
   logout: () => Promise<void>;
 }
@@ -37,10 +42,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return null;
   }
 
-  async function register(email: string, password: string, fullName: string) {
+  async function register(email: string, password: string, fullName: string, wantsOwner: boolean) {
     const response = await apiFetch("/auth/register", {
       method: "POST",
-      body: JSON.stringify({ email, password, fullName }),
+      body: JSON.stringify({ email, password, fullName, roles: wantsOwner ? ["OWNER"] : [] }),
     });
     return handleAuthResponse(response);
   }

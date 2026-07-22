@@ -52,7 +52,7 @@ class AuthServiceTest {
     @Test
     void register_emailAlreadyRegistered_throws() {
         when(userRepository.existsByEmail("taken@example.com")).thenReturn(true);
-        RegisterRequest request = new RegisterRequest("taken@example.com", "correcthorsebattery", "Name", null);
+        RegisterRequest request = new RegisterRequest("taken@example.com", "correcthorsebattery", "Name", null, null);
 
         assertThatThrownBy(() -> authService.register(request)).isInstanceOf(EmailAlreadyRegisteredException.class);
     }
@@ -61,7 +61,7 @@ class AuthServiceTest {
     void register_breachedPassword_throws() {
         when(userRepository.existsByEmail(any())).thenReturn(false);
         when(breachChecker.isBreached("password123!")).thenReturn(true);
-        RegisterRequest request = new RegisterRequest("new@example.com", "password123!", "Name", null);
+        RegisterRequest request = new RegisterRequest("new@example.com", "password123!", "Name", null, null);
 
         assertThatThrownBy(() -> authService.register(request)).isInstanceOf(BreachedPasswordException.class);
     }
@@ -75,12 +75,42 @@ class AuthServiceTest {
         when(jwtService.issueAccessToken(any(), any())).thenReturn("token");
         when(refreshTokenService.issue(any())).thenReturn("raw-refresh-token");
 
-        RegisterRequest request = new RegisterRequest("new@example.com", "correcthorsebattery", "Name", null);
+        RegisterRequest request = new RegisterRequest("new@example.com", "correcthorsebattery", "Name", null, null);
         var tokenPair = authService.register(request);
 
         assertThat(tokenPair.response().accessToken()).isEqualTo("token");
         assertThat(tokenPair.rawRefreshToken()).isEqualTo("raw-refresh-token");
         verify(userRepository).save(any());
+    }
+
+    @Test
+    void register_requestingOwnerRole_grantsOwnerAndRenter() {
+        when(userRepository.existsByEmail(any())).thenReturn(false);
+        when(breachChecker.isBreached(any())).thenReturn(false);
+        when(passwordEncoder.encode(any())).thenReturn("hashed");
+        when(roleRepository.findByName("RENTER")).thenReturn(Optional.of(new Role("RENTER")));
+        when(roleRepository.findByName("OWNER")).thenReturn(Optional.of(new Role("OWNER")));
+        when(jwtService.issueAccessToken(any(), any())).thenReturn("token");
+        when(refreshTokenService.issue(any())).thenReturn("raw-refresh-token");
+
+        RegisterRequest request =
+                new RegisterRequest("owner@example.com", "correcthorsebattery", "Name", null, java.util.Set.of("OWNER"));
+        var tokenPair = authService.register(request);
+
+        assertThat(tokenPair.response().roles()).containsExactlyInAnyOrder("OWNER", "RENTER");
+    }
+
+    @Test
+    void register_requestingAdminRole_throws() {
+        when(userRepository.existsByEmail(any())).thenReturn(false);
+        when(breachChecker.isBreached(any())).thenReturn(false);
+
+        RegisterRequest request = new RegisterRequest(
+                "wannabeadmin@example.com", "correcthorsebattery", "Name", null, java.util.Set.of("ADMIN"));
+
+        assertThatThrownBy(() -> authService.register(request))
+                .isInstanceOf(com.wida3.auth.exception.InvalidRoleRequestException.class);
+        verify(userRepository, org.mockito.Mockito.never()).save(any());
     }
 
     @Test

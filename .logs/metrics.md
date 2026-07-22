@@ -24,3 +24,10 @@
   2. An unmatched URL returned 500 instead of 404 (this Spring version throws NoResourceFoundException for unmatched paths, not NoHandlerFoundException, which was the only one handled).
   3. Unauthenticated requests returned 403 instead of 401 (Spring Security defaults to Http403ForbiddenEntryPoint when no AuthenticationEntryPoint is configured) — meant the frontend's silent-refresh-on-401 logic would never have fired. Fixed by configuring HttpStatusEntryPoint(UNAUTHORIZED) explicitly.
 - All three fixes now also covered by integration tests.
+
+## 2026-07-22 — Sprint 2, Story 2.1 VERIFY
+- Tests: 36/36 passing (11 AuthServiceTest, 2 JwtServiceTest, 2 AuthRateLimiterTest unit, 13 AuthControllerIntegrationTest + 10 ListingControllerIntegrationTest Testcontainers/Postgres integration)
+- Coverage (JaCoCo, instructions): 86% (1770/2043) — meets the ≥80% gate
+- Frontend: `npx tsc --noEmit` and `npm run build` both clean
+- Manual live-environment verification (browser/curl against a running instance, as done for 1.1/1.2) was not repeated this story — the integration tests already exercise the full HTTP/multipart/security-filter layers with real assertions (including actually GET-ing an uploaded file back through the static resource handler to confirm it's servable, not just that upload returns 200), which is where the earlier stories' live-testing bugs were actually rooted. Judgment call, flagging it rather than silently skipping.
+- Security self-check: uploaded filenames are always server-generated (random UUID + validated extension) — never derived from client input, so no path traversal is possible; listing owner_id comes from the authenticated session, never from the request body (no IDOR); status is always server-set to PENDING_APPROVAL; @PreAuthorize("hasRole('OWNER')") enforces the role boundary on both listing creation and file upload (confirmed via test: RENTER-only account gets 403 on both).

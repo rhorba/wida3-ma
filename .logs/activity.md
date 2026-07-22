@@ -45,3 +45,11 @@
 - Frontend: Vite + React 19 + TypeScript scaffold under frontend/, API client with silent-refresh-on-401 retry, AuthContext (access token in memory only, per Security Baseline §3), minimal Login/Register/Dashboard pages
 - 📝 MILESTONE: VERIFY passed — 24/24 tests, 84% coverage, live manual E2E verification via curl (browser extension unavailable this session). Three real bugs found via live testing and fixed: 500-instead-of-405 on wrong HTTP method, 500-instead-of-404 on unmatched paths, 403-instead-of-401 on unauthenticated requests (this last one would have silently broken the frontend's silent-refresh feature — the whole point of this story). See .logs/metrics.md for detail.
 - Committed locally (not pushed yet, same sprint-end-push pattern as 1.1)
+
+## 2026-07-22 — Sprint 2, Story 2.1 (Backend Dev + Frontend Dev): Owner creates a listing
+- Owner-role gap closed first: /auth/register now accepts an optional `roles` field (self-select OWNER in addition to default RENTER; ADMIN never self-assignable) — frontend RegisterPage got an "I want to list a warehouse" checkbox
+- Backend: listings + listing_photos tables (V4 migration, PostGIS location column deferred — see .logs/decisions.md), FileStorageService (content-type/size validated, random-filename storage, no path traversal possible), POST /api/v1/files/upload + POST /api/v1/listings (both @PreAuthorize("hasRole('OWNER')")), static resource handler serving /uploads/** for local dev, @EnableMethodSecurity added
+- Frontend: CreateListingForm (fields + file picker + photo previews, uploads then creates), wired into DashboardPage (visible only when the logged-in user holds OWNER)
+- 📝 MILESTONE: VERIFY passed — 36/36 tests, 86% coverage, security self-check clean. See .logs/metrics.md for detail, including the judgment call to rely on integration tests rather than repeating manual live-server verification this story.
+- Committed locally (not pushed yet)
+- This was the last of the three stories planned for Sprint 2 (1.1, 1.2, 2.1) — sprint-end push still pending, per CLAUDE.md rule 7.
