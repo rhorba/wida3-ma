@@ -53,3 +53,12 @@
 - 📝 MILESTONE: VERIFY passed — 36/36 tests, 86% coverage, security self-check clean. See .logs/metrics.md for detail, including the judgment call to rely on integration tests rather than repeating manual live-server verification this story.
 - Committed locally (not pushed yet)
 - This was the last of the three stories planned for Sprint 2 (1.1, 1.2, 2.1) — sprint-end push still pending, per CLAUDE.md rule 7.
+
+## 2026-07-23 — Sprint 2 SHIP: Playwright recording + push
+- Docker Desktop verified healthy (was down at session start); wida3-dev-postgres container had survived the previous session's incident as stopped (not lost as feared) — restarted with original data/credentials
+- Backend run locally via a cached Maven 3.9.9 distribution found under `~/.m2/wrapper/dists` (no system `mvn`/`mvnw` available) on port 8091 (8080 was occupied by an unrelated project's auto-restarted container — left untouched per the prior session's port-kill incident)
+- Added a dev-only Vite proxy (`/api` → `VITE_DEV_API_PROXY_TARGET`) in `frontend/vite.config.ts` so the Vite dev server and backend can run cross-port locally without CORS — no backend change needed
+- Recorded `.recordings/v0.1.0-sprint2-2026-07-23.webm` via a new Playwright spec (`frontend/e2e/critical-flows.spec.ts`): register (as Owner) → create listing with photo upload → logout → login. Fulfills CLAUDE.md rule 9 for Sprint 2.
+- Real bug found (not fixed, logged for backlog): `RegisterPage.handleSubmit` has no `try/finally` around `await register(...)` — an unhandled fetch rejection leaves the submit button stuck on "Registering..." forever. Only surfaced because of a local CORS misconfiguration during this session's debugging, but the missing error handling is real and independent of that.
+- 📝 PUSH: commit 5210fb2 "test(e2e): add Playwright critical-flow recording for Sprint 2" (plus the three story commits 2b1be09, 4e4fbbb, 478c2e6) → origin/main. Sprint 2 SHIP complete.
+- CI monitoring: N/A — no CI pipeline configured yet (same as Sprint 1)

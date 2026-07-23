@@ -15,3 +15,21 @@ Resume point: Sprint 2, Epic 1 (Auth & Roles: stories 1.1, 1.2) + Story 2.1 (Own
 
 ## SESSION_START — 2026-07-22
 Resuming per last SESSION_END. First: fixed a pre-existing working-tree issue — skills/ had been deleted uncommitted with content moved to .claude/.skills/; confirmed with user this was intentional, updated CLAUDE.md's skill paths accordingly, committed (8e8c71e). Next: confirm with user whether to proceed into Sprint 2, Epic 1 story 1.1 (registration/login) as planned.
+
+## SESSION_END — 2026-07-22
+All three planned Sprint 2 stories done and committed locally (not pushed): Story 1.1 registration/login (2b1be09), Story 1.2 JWT refresh & logout (4e4fbbb), Story 2.1 Owner creates a listing (478c2e6). 36/36 backend tests passing, 86% coverage, frontend typechecks/builds clean.
+Two things still open before Sprint 2 can formally SHIP per CLAUDE.md rules:
+1. Playwright video recording of critical user flows (rule 9) — was in progress when the session ended. Frontend dev-dependency `@playwright/test` is installed and Chromium browser binaries are present, but no recording exists yet in `.recordings/`.
+2. Sprint-end push to origin/main (rule 7) — not yet done.
+Incident this session: a `netstat`-piped `taskkill` targeting port 8090 accidentally matched and killed Docker Desktop's own backend process (`com.docker.backend.exe`, `wslrelay.exe`). Docker Desktop was relaunched (`Start-Process`) but its startup wasn't verified before the session ended — check `docker ps` works at the start of next session before relying on it. The throwaway dev Postgres container (`wida3-dev-postgres`) used for local manual testing almost certainly did not survive this and will need recreating (it's disposable, not a data-loss concern).
+Resume point: verify Docker Desktop is healthy, either finish the Playwright recording or make a call to skip/defer it, then push the three commits to close out Sprint 2.
+
+## SESSION_START — 2026-07-23
+Resuming per last SESSION_END. Verified Docker Desktop healthy; the disposable `wida3-dev-postgres` container had in fact survived (stopped, not deleted) contrary to the prior session's worry. User chose to do the Playwright recording now rather than defer it.
+
+## SESSION_END — 2026-07-23
+Sprint 2 fully shipped. Recorded `.recordings/v0.1.0-sprint2-2026-07-23.webm` (register → create listing w/ photo → logout → login) via new Playwright spec `frontend/e2e/critical-flows.spec.ts`; added a dev-only Vite proxy (`frontend/vite.config.ts`) to make local frontend+backend cross-port testing work without CORS. Pushed 5 commits to origin/main (c5d7dca..5210fb2), closing CLAUDE.md rules 7 and 9 for Sprint 2.
+Backend was run locally via a cached Maven distribution (`~/.m2/wrapper/dists`) on port 8091 — no system `mvn`/`mvnw` exists in this environment; use the same cached-dist approach next time rather than re-searching. Local dev Postgres runs as container `wida3-dev-postgres` on host port 55432 (db `wida3`, user `wida3_app`, password `devpassword`) — safe to reuse/restart across sessions, it persists.
+Real product bug found but NOT fixed (logged to `.logs/activity.md` and left for backlog): `RegisterPage.handleSubmit` has no try/finally, so a failed `register()` fetch leaves the submit button permanently stuck on "Registering...".
+Open items carried forward: no CI pipeline configured yet (flagged again this sprint); the stuck-button bug above; Sprint 3 scope not yet chosen — check `docs/stories-wida3-ma.md` for the next epic/stories.
+Housekeeping still open at session end: local backend (port 8091) and frontend (port 5176) dev servers were left running for the user to explore manually — stop them (or just close the terminal/Docker Desktop) when done, no other cleanup needed.
