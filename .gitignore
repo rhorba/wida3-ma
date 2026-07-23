@@ -7,10 +7,15 @@ target/
 build/
 *.class
 .gradle/
+backend/uploads/
 
 # Frontend (Node)
 node_modules/
 dist/
+
+# Playwright
+frontend/test-results/
+frontend/playwright-report/
 
 # IDE
 .idea/
