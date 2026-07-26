@@ -12,9 +12,14 @@ export function LoginPage({ onSwitchToRegister }: { onSwitchToRegister: () => vo
     e.preventDefault();
     setSubmitting(true);
     setError(null);
-    const errorMessage = await login(email, password);
-    setSubmitting(false);
-    if (errorMessage) setError(errorMessage);
+    try {
+      const errorMessage = await login(email, password);
+      if (errorMessage) setError(errorMessage);
+    } catch {
+      setError("Request failed");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (

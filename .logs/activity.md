@@ -62,3 +62,6 @@
 - Real bug found (not fixed, logged for backlog): `RegisterPage.handleSubmit` has no `try/finally` around `await register(...)` — an unhandled fetch rejection leaves the submit button stuck on "Registering..." forever. Only surfaced because of a local CORS misconfiguration during this session's debugging, but the missing error handling is real and independent of that.
 - 📝 PUSH: commit 5210fb2 "test(e2e): add Playwright critical-flow recording for Sprint 2" (plus the three story commits 2b1be09, 4e4fbbb, 478c2e6) → origin/main. Sprint 2 SHIP complete.
 - CI monitoring: N/A — no CI pipeline configured yet (same as Sprint 1)
+
+## Bug fix — 2026-07-26
+Fixed stuck-submit-button bug (logged 2026-07-23): RegisterPage.handleSubmit and LoginPage.handleSubmit awaited register()/login() without try/finally, so a network-level fetch rejection (not just an HTTP error response) left setSubmitting(true) forever. Added try/catch/finally to both, matching the pattern already used in CreateListingForm. Verified via `npm run build` (tsc + vite) and `npm run lint` (oxlint) -- both clean; no frontend unit-test framework exists yet (Playwright e2e only) so no regression test added for this micro-fix.

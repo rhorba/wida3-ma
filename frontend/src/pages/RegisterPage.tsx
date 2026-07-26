@@ -14,9 +14,14 @@ export function RegisterPage({ onSwitchToLogin }: { onSwitchToLogin: () => void 
     e.preventDefault();
     setSubmitting(true);
     setError(null);
-    const errorMessage = await register(email, password, fullName, wantsOwner);
-    setSubmitting(false);
-    if (errorMessage) setError(errorMessage);
+    try {
+      const errorMessage = await register(email, password, fullName, wantsOwner);
+      if (errorMessage) setError(errorMessage);
+    } catch {
+      setError("Request failed");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (

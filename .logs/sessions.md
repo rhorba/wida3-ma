@@ -34,3 +34,6 @@ Real product bug found but NOT fixed (logged to `.logs/activity.md` and left for
 Open items carried forward: no CI pipeline configured yet (flagged again this sprint); the stuck-button bug above; Sprint 3 scope not yet chosen — check `docs/stories-wida3-ma.md` for the next epic/stories.
 Local backend (port 8091) and frontend (port 5176) dev servers were stopped before session end. `wida3-dev-postgres` container left running (disposable, cheap to restart with `docker start wida3-dev-postgres` — creds: db `wida3`, user `wida3_app`, password `devpassword`, host port 55432). Working tree clean, all commits pushed.
 Next session: pick Sprint 3 scope from `docs/stories-wida3-ma.md`; consider fixing the stuck-button bug on RegisterPage as a quick first task.
+
+## SESSION_START — 2026-07-26
+Resuming per last SESSION_END (Sprint 2 shipped, pushed, working tree clean). Awaiting user direction on Sprint 3 scope.
