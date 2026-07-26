@@ -65,3 +65,6 @@
 
 ## Bug fix — 2026-07-26
 Fixed stuck-submit-button bug (logged 2026-07-23): RegisterPage.handleSubmit and LoginPage.handleSubmit awaited register()/login() without try/finally, so a network-level fetch rejection (not just an HTTP error response) left setSubmitting(true) forever. Added try/catch/finally to both, matching the pattern already used in CreateListingForm. Verified via `npm run build` (tsc + vite) and `npm run lint` (oxlint) -- both clean; no frontend unit-test framework exists yet (Playwright e2e only) so no regression test added for this micro-fix.
+
+## PUSH — 2026-07-26
+Pushed bug-fix commit c1040be to origin/main (9bbb34c..c1040be).
