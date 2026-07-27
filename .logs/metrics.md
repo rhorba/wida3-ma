@@ -34,3 +34,6 @@
 
 ## Coverage — 2026-07-27
 45/45 backend tests passing, 87% combined coverage (JaCoCo, run under JDK 21). Gate (>=80%) met.
+
+## SPRINT_SNAPSHOT — 2026-07-27
+Epic 2 (Warehouse Listings) complete: Stories 2.1 (owner creates listing, shipped Sprint 2), 2.2 (public search), 2.3 (admin approve/reject) all done. 45/45 backend tests, 87% coverage. 2 Playwright critical-flow videos recorded (owner flow + admin approve/reject/search flow). All work pushed to origin/main through commit 55c931d.
