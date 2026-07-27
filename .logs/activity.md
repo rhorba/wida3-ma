@@ -74,3 +74,6 @@ Story 2.2 (public search) + Story 2.3 (admin approve/reject) backend done: GET /
 
 ## Batch 3 complete + manual verification — 2026-07-27
 Frontend: SearchPage (public, filters by city/type/size range, reachable pre-login and from dashboard) and AdminApprovalQueue (ADMIN-only, approve/reject with required reason) wired into App.tsx/DashboardPage.tsx. Fixed a real bug caught by the existing Playwright spec: SearchPage duplicated the "City" field label used by CreateListingForm, breaking getByLabel lookups once both render together on the dashboard -- renamed to "Location". Playwright critical-flow e2e re-passes. Manually verified in a real Chrome tab via claude-in-chrome: registered/promoted a DB-level admin, approved one pending listing (queue count 9->8), confirmed it then appears in public search, rejected another with a reason (queue count 8->7). Two dev-environment gotchas hit while manually testing (session-local, not code changes): (1) forgot VITE_API_BASE_URL when starting Vite so requests bypassed the dev proxy entirely; (2) Git Bash/MSYS auto-mangles env var values that look like absolute paths (e.g. "/api/v1" became a file:// Windows path) -- needed MSYS_NO_PATHCONV=1. Worth a one-line note in README dev-setup if this comes up again.
+
+## PUSH — 2026-07-27
+Pushed Sprint 3 Epic 2 commit 6b707c4 to origin/main (68d29a6..6b707c4).
