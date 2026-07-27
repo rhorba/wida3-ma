@@ -24,3 +24,6 @@
 ## 2026-07-22 — Story 2.1 approach + schema deviation
 - User chose 🔴 COMPREHENSIVE for Story 2.1 (Owner creates a listing): listing creation + file upload with content-type/size validation + max-photo-count limit + frontend Create Listing form + full integration test coverage.
 - Deviation from Database doc: deferring the `listings.location GEOGRAPHY(POINT,4326)` PostGIS column — no Postgres instance in this project runs the PostGIS extension yet, and this story's acceptance criteria don't need geo-search (that's a later story). Column will be added via its own migration when geo-search is actually built, matching the incremental-migration pattern already agreed for the auth tables.
+
+## Decision — 2026-07-27
+Sprint 3 scope: Epic 2 completion (Stories 2.2 public search, 2.3 admin approve/reject). Approach chosen: simple unpaginated exact-match search (city/type/size range), plus a persisted reject reason (new `rejection_reason` column) on the admin reject action -- rejected the fully "Balanced" option (no pagination yet, YAGNI) and "Comprehensive" (geo-radius search deferred, DB doc already flags it as future work).

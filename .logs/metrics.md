@@ -31,3 +31,6 @@
 - Frontend: `npx tsc --noEmit` and `npm run build` both clean
 - Manual live-environment verification (browser/curl against a running instance, as done for 1.1/1.2) was not repeated this story — the integration tests already exercise the full HTTP/multipart/security-filter layers with real assertions (including actually GET-ing an uploaded file back through the static resource handler to confirm it's servable, not just that upload returns 200), which is where the earlier stories' live-testing bugs were actually rooted. Judgment call, flagging it rather than silently skipping.
 - Security self-check: uploaded filenames are always server-generated (random UUID + validated extension) — never derived from client input, so no path traversal is possible; listing owner_id comes from the authenticated session, never from the request body (no IDOR); status is always server-set to PENDING_APPROVAL; @PreAuthorize("hasRole('OWNER')") enforces the role boundary on both listing creation and file upload (confirmed via test: RENTER-only account gets 403 on both).
+
+## Coverage — 2026-07-27
+45/45 backend tests passing, 87% combined coverage (JaCoCo, run under JDK 21). Gate (>=80%) met.

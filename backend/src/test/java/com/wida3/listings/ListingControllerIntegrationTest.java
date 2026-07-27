@@ -4,6 +4,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.wida3.auth.NoOpBreachCheckerConfig;
 import com.wida3.auth.dto.RegisterRequest;
+import com.wida3.auth.entity.Role;
+import com.wida3.auth.entity.User;
+import com.wida3.auth.repository.RoleRepository;
+import com.wida3.auth.repository.UserRepository;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -53,6 +57,12 @@ class ListingControllerIntegrationTest {
 
     @Autowired
     TestRestTemplate restTemplate;
+
+    @Autowired
+    UserRepository userRepository;
+
+    @Autowired
+    RoleRepository roleRepository;
 
     private String url(String path) {
         return "http://localhost:" + port + path;
@@ -236,6 +246,184 @@ class ListingControllerIntegrationTest {
                 url("/api/v1/files/upload"), HttpMethod.POST, new HttpEntity<>(form, headers), Map.class);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.PAYLOAD_TOO_LARGE);
+    }
+
+    @Test
+    void search_unauthenticated_findsOnlyActiveListingsMatchingFilters() {
+        // Unique city per test: the Testcontainers Postgres instance is shared (not rolled back)
+        // across every test method in this class, so search assertions must not depend on the
+        // absence of listings created by unrelated tests using the shared default city.
+        String city = "SearchCityA-" + java.util.UUID.randomUUID();
+        String ownerToken = registerAndGetToken("owner8@example.com", Set.of("OWNER"));
+        HttpHeaders ownerHeaders = authHeaders(ownerToken);
+
+        Map<String, Object> pendingBody = new java.util.HashMap<>(validListingBody(List.of()));
+        pendingBody.put("city", city);
+        ResponseEntity<Map> pendingResponse = restTemplate.exchange(
+                url("/api/v1/listings"), HttpMethod.POST, new HttpEntity<>(pendingBody, ownerHeaders), Map.class);
+        Object pendingId = pendingResponse.getBody().get("id");
+
+        activateListing((String) pendingId);
+
+        ResponseEntity<List> matching = restTemplate.getForEntity(
+                url("/api/v1/listings/search?city=" + city + "&warehouseType=DRY"), List.class);
+        assertThat(matching.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(matching.getBody()).hasSize(1);
+
+        ResponseEntity<List> nonMatchingCity = restTemplate.getForEntity(
+                url("/api/v1/listings/search?city=" + city + "-nonexistent"), List.class);
+        assertThat(nonMatchingCity.getBody()).isEmpty();
+    }
+
+    @Test
+    void search_excludesPendingApprovalListings() {
+        String city = "SearchCityB-" + java.util.UUID.randomUUID();
+        String token = registerAndGetToken("owner9@example.com", Set.of("OWNER"));
+        HttpHeaders headers = authHeaders(token);
+        Map<String, Object> body = new java.util.HashMap<>(validListingBody(List.of()));
+        body.put("city", city);
+        restTemplate.exchange(url("/api/v1/listings"), HttpMethod.POST, new HttpEntity<>(body, headers), Map.class);
+
+        ResponseEntity<List> response =
+                restTemplate.getForEntity(url("/api/v1/listings/search?city=" + city), List.class);
+        assertThat(response.getBody()).isEmpty();
+    }
+
+    private void activateListing(String listingId) {
+        String adminToken = grantAdminAndGetToken("admin-" + listingId + "@example.com");
+        HttpHeaders adminHeaders = authHeaders(adminToken);
+        restTemplate.exchange(
+                url("/api/v1/listings/" + listingId + "/approve"),
+                HttpMethod.PATCH,
+                new HttpEntity<>(null, adminHeaders),
+                Map.class);
+    }
+
+    /**
+     * ADMIN is not self-assignable at registration (AuthService.SELF_ASSIGNABLE_ROLES), mirroring
+     * production where admin accounts are provisioned out-of-band. Tests grant it directly via the
+     * repositories, then re-login to get a token carrying the new role claim.
+     */
+    private String grantAdminAndGetToken(String email) {
+        registerAndGetToken(email, Set.of());
+        User user = userRepository.findByEmail(email).orElseThrow();
+        Role adminRole = roleRepository.findByName("ADMIN").orElseThrow();
+        user.addRole(adminRole);
+        userRepository.save(user);
+
+        ResponseEntity<Map> loginResponse = restTemplate.postForEntity(
+                url("/api/v1/auth/login"), Map.of("email", email, "password", "correcthorsebattery"), Map.class);
+        return (String) loginResponse.getBody().get("accessToken");
+    }
+
+    private String createPendingListing(String ownerEmail) {
+        String ownerToken = registerAndGetToken(ownerEmail, Set.of("OWNER"));
+        HttpHeaders ownerHeaders = authHeaders(ownerToken);
+        ResponseEntity<Map> response = restTemplate.exchange(
+                url("/api/v1/listings"), HttpMethod.POST, new HttpEntity<>(validListingBody(List.of()), ownerHeaders), Map.class);
+        return (String) response.getBody().get("id");
+    }
+
+    @Test
+    void admin_approvesPendingListing_becomesActive() {
+        String listingId = createPendingListing("owner10@example.com");
+        String adminToken = grantAdminAndGetToken("admin10@example.com");
+
+        ResponseEntity<Map> response = restTemplate.exchange(
+                url("/api/v1/listings/" + listingId + "/approve"),
+                HttpMethod.PATCH,
+                new HttpEntity<>(null, authHeaders(adminToken)),
+                Map.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody().get("status")).isEqualTo("ACTIVE");
+    }
+
+    @Test
+    void admin_rejectsPendingListing_becomesRejectedWithReason() {
+        String listingId = createPendingListing("owner11@example.com");
+        String adminToken = grantAdminAndGetToken("admin11@example.com");
+
+        ResponseEntity<Map> response = restTemplate.exchange(
+                url("/api/v1/listings/" + listingId + "/reject"),
+                HttpMethod.PATCH,
+                new HttpEntity<>(Map.of("reason", "Photos too blurry to verify the space"), authHeaders(adminToken)),
+                Map.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody().get("status")).isEqualTo("REJECTED");
+        assertThat(response.getBody().get("rejectionReason")).isEqualTo("Photos too blurry to verify the space");
+    }
+
+    @Test
+    void reject_blankReason_returnsBadRequest() {
+        String listingId = createPendingListing("owner12@example.com");
+        String adminToken = grantAdminAndGetToken("admin12@example.com");
+
+        ResponseEntity<Map> response = restTemplate.exchange(
+                url("/api/v1/listings/" + listingId + "/reject"),
+                HttpMethod.PATCH,
+                new HttpEntity<>(Map.of("reason", ""), authHeaders(adminToken)),
+                Map.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+    }
+
+    @Test
+    void nonAdmin_cannotApproveListing_returnsForbidden() {
+        String listingId = createPendingListing("owner13@example.com");
+        String ownerToken = registerAndGetToken("owner14@example.com", Set.of("OWNER"));
+
+        ResponseEntity<Map> response = restTemplate.exchange(
+                url("/api/v1/listings/" + listingId + "/approve"),
+                HttpMethod.PATCH,
+                new HttpEntity<>(null, authHeaders(ownerToken)),
+                Map.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+    }
+
+    @Test
+    void approvingAlreadyActiveListing_returnsConflict() {
+        String listingId = createPendingListing("owner15@example.com");
+        String adminToken = grantAdminAndGetToken("admin15@example.com");
+        HttpHeaders adminHeaders = authHeaders(adminToken);
+
+        restTemplate.exchange(
+                url("/api/v1/listings/" + listingId + "/approve"), HttpMethod.PATCH, new HttpEntity<>(null, adminHeaders), Map.class);
+        ResponseEntity<Map> secondApprove = restTemplate.exchange(
+                url("/api/v1/listings/" + listingId + "/approve"), HttpMethod.PATCH, new HttpEntity<>(null, adminHeaders), Map.class);
+
+        assertThat(secondApprove.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+    }
+
+    @Test
+    void approvingUnknownListing_returnsNotFound() {
+        String adminToken = grantAdminAndGetToken("admin16@example.com");
+
+        ResponseEntity<Map> response = restTemplate.exchange(
+                url("/api/v1/listings/" + java.util.UUID.randomUUID() + "/approve"),
+                HttpMethod.PATCH,
+                new HttpEntity<>(null, authHeaders(adminToken)),
+                Map.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+    }
+
+    @Test
+    void admin_listsPendingListings_ownerCannot() {
+        createPendingListing("owner17@example.com");
+        String adminToken = grantAdminAndGetToken("admin17@example.com");
+
+        ResponseEntity<List> adminResponse = restTemplate.exchange(
+                url("/api/v1/listings/pending"), HttpMethod.GET, new HttpEntity<>(authHeaders(adminToken)), List.class);
+        assertThat(adminResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat((List<?>) adminResponse.getBody()).isNotEmpty();
+
+        String ownerToken = registerAndGetToken("owner18@example.com", Set.of("OWNER"));
+        ResponseEntity<Map> ownerResponse = restTemplate.exchange(
+                url("/api/v1/listings/pending"), HttpMethod.GET, new HttpEntity<>(authHeaders(ownerToken)), Map.class);
+        assertThat(ownerResponse.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
     }
 
     @Test

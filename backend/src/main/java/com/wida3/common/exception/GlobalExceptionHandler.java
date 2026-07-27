@@ -8,8 +8,10 @@ import com.wida3.auth.exception.InvalidRefreshTokenException;
 import com.wida3.auth.exception.InvalidRoleRequestException;
 import com.wida3.files.exception.FileTooLargeException;
 import com.wida3.files.exception.UnsupportedFileTypeException;
+import com.wida3.listings.exception.InvalidListingStateException;
 import com.wida3.listings.exception.InvalidPhotoUrlException;
 import com.wida3.listings.exception.InvalidWarehouseTypeException;
+import com.wida3.listings.exception.ListingNotFoundException;
 import com.wida3.listings.exception.TooManyPhotosException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -96,6 +98,16 @@ public class GlobalExceptionHandler {
     @ExceptionHandler({InvalidWarehouseTypeException.class, TooManyPhotosException.class, InvalidPhotoUrlException.class})
     public ResponseEntity<ErrorResponse> handleListingValidation(RuntimeException ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ErrorResponse("VALIDATION_ERROR", ex.getMessage()));
+    }
+
+    @ExceptionHandler(ListingNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleListingNotFound(ListingNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ErrorResponse("LISTING_NOT_FOUND", ex.getMessage()));
+    }
+
+    @ExceptionHandler(InvalidListingStateException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidListingState(InvalidListingStateException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(new ErrorResponse("INVALID_LISTING_STATE", ex.getMessage()));
     }
 
     @ExceptionHandler(AccessDeniedException.class)

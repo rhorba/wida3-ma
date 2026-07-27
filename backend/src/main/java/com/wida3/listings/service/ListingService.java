@@ -6,12 +6,16 @@ import com.wida3.listings.dto.CreateListingRequest;
 import com.wida3.listings.dto.ListingResponse;
 import com.wida3.listings.entity.Listing;
 import com.wida3.listings.entity.ListingPhoto;
+import com.wida3.listings.entity.ListingStatus;
 import com.wida3.listings.entity.WarehouseType;
 import com.wida3.listings.exception.InvalidPhotoUrlException;
 import com.wida3.listings.exception.InvalidWarehouseTypeException;
+import com.wida3.listings.exception.ListingNotFoundException;
 import com.wida3.listings.exception.TooManyPhotosException;
 import com.wida3.listings.repository.ListingRepository;
+import java.math.BigDecimal;
 import java.util.List;
+import java.util.UUID;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,6 +34,14 @@ public class ListingService {
         this.listingRepository = listingRepository;
         this.userRepository = userRepository;
         this.maxPhotosPerListing = maxPhotosPerListing;
+    }
+
+    @Transactional(readOnly = true)
+    public List<ListingResponse> search(String city, String warehouseType, BigDecimal minSizeSqm, BigDecimal maxSizeSqm) {
+        WarehouseType type = warehouseType == null ? null : parseWarehouseType(warehouseType);
+        return listingRepository.search(city, type, minSizeSqm, maxSizeSqm).stream()
+                .map(this::toResponse)
+                .toList();
     }
 
     @Transactional
@@ -66,6 +78,31 @@ public class ListingService {
         return toResponse(listing);
     }
 
+    @Transactional(readOnly = true)
+    public List<ListingResponse> pending() {
+        return listingRepository.findByStatusOrderByCreatedAtAsc(ListingStatus.PENDING_APPROVAL).stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
+    @Transactional
+    public ListingResponse approve(UUID id) {
+        Listing listing = findOrThrow(id);
+        listing.approve();
+        return toResponse(listing);
+    }
+
+    @Transactional
+    public ListingResponse reject(UUID id, String reason) {
+        Listing listing = findOrThrow(id);
+        listing.reject(reason);
+        return toResponse(listing);
+    }
+
+    private Listing findOrThrow(UUID id) {
+        return listingRepository.findById(id).orElseThrow(() -> new ListingNotFoundException(id));
+    }
+
     private WarehouseType parseWarehouseType(String value) {
         try {
             return WarehouseType.valueOf(value);
@@ -85,6 +122,7 @@ public class ListingService {
                 listing.getSizeSqm(),
                 listing.getWeeklyPrice(),
                 listing.getStatus().name(),
-                photoUrls);
+                photoUrls,
+                listing.getRejectionReason());
     }
 }

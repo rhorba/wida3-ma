@@ -1,6 +1,7 @@
 package com.wida3.listings.entity;
 
 import com.wida3.auth.entity.User;
+import com.wida3.listings.exception.InvalidListingStateException;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -57,6 +58,9 @@ public class Listing {
     @Column(nullable = false)
     private ListingStatus status = ListingStatus.PENDING_APPROVAL;
 
+    @Column(name = "rejection_reason")
+    private String rejectionReason;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
@@ -104,6 +108,21 @@ public class Listing {
         photo.setListing(this);
     }
 
+    public void approve() {
+        if (status != ListingStatus.PENDING_APPROVAL) {
+            throw new InvalidListingStateException(status, "approve");
+        }
+        status = ListingStatus.ACTIVE;
+    }
+
+    public void reject(String reason) {
+        if (status != ListingStatus.PENDING_APPROVAL) {
+            throw new InvalidListingStateException(status, "reject");
+        }
+        status = ListingStatus.REJECTED;
+        rejectionReason = reason;
+    }
+
     public UUID getId() {
         return id;
     }
@@ -138,6 +157,10 @@ public class Listing {
 
     public ListingStatus getStatus() {
         return status;
+    }
+
+    public String getRejectionReason() {
+        return rejectionReason;
     }
 
     public List<ListingPhoto> getPhotos() {

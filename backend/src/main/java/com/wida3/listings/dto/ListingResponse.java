@@ -13,5 +13,6 @@ public record ListingResponse(
         BigDecimal sizeSqm,
         BigDecimal weeklyPrice,
         String status,
-        List<String> photoUrls) {
+        List<String> photoUrls,
+        String rejectionReason) {
 }

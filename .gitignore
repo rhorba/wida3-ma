@@ -16,6 +16,7 @@ dist/
 # Playwright
 frontend/test-results/
 frontend/playwright-report/
+.recordings/raw/
 
 # IDE
 .idea/

@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { apiFetch } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
+import { AdminApprovalQueue } from "../listings/AdminApprovalQueue";
 import { CreateListingForm } from "../listings/CreateListingForm";
+import { SearchPage } from "../listings/SearchPage";
 
 export function DashboardPage() {
   const { user, logout } = useAuth();
@@ -22,6 +24,8 @@ export function DashboardPage() {
       {refreshResult && <p>{refreshResult}</p>}
       <button onClick={() => logout()}>Log out</button>
       {user?.roles.includes("OWNER") && <CreateListingForm />}
+      {user?.roles.includes("ADMIN") && <AdminApprovalQueue />}
+      <SearchPage />
     </div>
   );
 }
