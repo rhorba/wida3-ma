@@ -80,3 +80,6 @@ Pushed Sprint 3 Epic 2 commit 6b707c4 to origin/main (68d29a6..6b707c4).
 
 ## VIDEO_RECORDED — 2026-07-27
 Extended frontend/e2e/critical-flows.spec.ts with a second test covering the new Epic 2 flows: owner creates two pending listings, an admin account is provisioned (registered then promoted to ADMIN directly in the dev Postgres, since ADMIN is intentionally not self-assignable), admin approves one listing and rejects the other with a reason, then public search confirms only the approved listing is visible. Recorded both critical-flow tests per CLAUDE.md rule 9: .recordings/v0.2.0-epic2-2026-07-27-owner-register-list-login.webm and .recordings/v0.2.0-epic2-2026-07-27-admin-approve-reject-search.webm. Added .recordings/raw/ to .gitignore (Playwright per-test debug artifacts, not the deliverable).
+
+## PUSH — 2026-07-27
+Pushed e2e extension + recordings commit 2d835fb to origin/main (6b707c4..2d835fb). Epic 2 (Stories 2.1, 2.2, 2.3) fully shipped, verified, and recorded.
