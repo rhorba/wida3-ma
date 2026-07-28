@@ -4,6 +4,7 @@ import com.wida3.bookings.dto.BookingResponse;
 import com.wida3.bookings.dto.CreateBookingRequest;
 import com.wida3.bookings.service.BookingService;
 import jakarta.validation.Valid;
+import java.util.List;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -36,6 +37,12 @@ public class BookingController {
             Authentication authentication) {
         BookingResponse response = bookingService.create(authentication.getName(), request, idempotencyKey);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @GetMapping
+    public ResponseEntity<List<BookingResponse>> list(Authentication authentication) {
+        boolean isAdmin = isAdmin(authentication);
+        return ResponseEntity.ok(bookingService.list(authentication.getName(), isAdmin));
     }
 
     @GetMapping("/{id}")

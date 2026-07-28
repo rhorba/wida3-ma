@@ -94,3 +94,7 @@ Pushed Epic 3 Batch 1 (d51a867 feat(bookings), f593421 chore) to origin/main. ce
 ## 2026-07-28 (continued) — Epic 3 Batch 2 complete
 Implemented POST /api/v1/bookings/{id}/cancel: renter/owner/admin can cancel a CONFIRMED booking (403 for strangers, same access rule as GET), triggers PaymentService.refund + Payment.markRefunded when payment had succeeded, revokes the access code (orphanRemoval on Booking.accessCode), rejects cancelling a non-CONFIRMED booking with 409 INVALID_BOOKING_STATE. Added InvalidBookingStateException + GlobalExceptionHandler mapping.
 Full backend suite: 60/60 tests passing (14 in BookingControllerIntegrationTest, 6 new for cancel), 88% instruction / 77% branch coverage (JaCoCo, JDK 21). Coverage gate (>=80%) met.
+
+## 2026-07-28 (continued) — Epic 3 Batch 3 complete
+Implemented GET /api/v1/bookings unified list (also satisfies Epic 4 Story 4.1 admin-views-all-bookings): RENTER sees own bookings, OWNER sees bookings on their listings, a user with both roles sees the union (BookingRepository.findByRenterOrListingOwner), ADMIN sees every booking, ordered newest-first. No pagination (YAGNI, consistent with the earlier public-search decision).
+Full backend suite: 65/65 tests passing (19 in BookingControllerIntegrationTest, 5 new for the list endpoint), 88% instruction coverage (JaCoCo, JDK 21). Coverage gate (>=80%) met.

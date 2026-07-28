@@ -26,6 +26,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -114,6 +115,19 @@ public class BookingService {
         Booking booking = findOrThrow(id);
         requireViewAccess(booking, requesterEmail, isAdmin);
         return toResponse(booking);
+    }
+
+    @Transactional(readOnly = true)
+    public List<BookingResponse> list(String requesterEmail, boolean isAdmin) {
+        List<Booking> bookings;
+        if (isAdmin) {
+            bookings = bookingRepository.findAllByOrderByCreatedAtDesc();
+        } else {
+            User requester = userRepository.findByEmail(requesterEmail)
+                    .orElseThrow(() -> new IllegalStateException("Authenticated user not found: " + requesterEmail));
+            bookings = bookingRepository.findByRenterOrListingOwner(requester.getId());
+        }
+        return bookings.stream().map(this::toResponse).toList();
     }
 
     @Transactional

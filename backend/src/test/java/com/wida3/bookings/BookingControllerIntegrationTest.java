@@ -390,4 +390,76 @@ class BookingControllerIntegrationTest {
                 Map.class);
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
     }
+
+    private ResponseEntity<List> listBookings(String token) {
+        return restTemplate.exchange(
+                url("/api/v1/bookings"), HttpMethod.GET, new HttpEntity<>(authHeaders(token)), List.class);
+    }
+
+    @Test
+    void renter_seesOwnBookingInList_notStrangersBooking() {
+        Map<String, String> listing = createActiveListing("owner-list1@example.com", 300.0);
+        String renterToken = registerAndGetToken("renter-list1@example.com", Set.of());
+        String strangerToken = registerAndGetToken("stranger-list1@example.com", Set.of());
+        LocalDate start = LocalDate.now().plusDays(170);
+        String bookingId = createConfirmedBooking(renterToken, listing.get("listingId"), start, start.plusDays(7));
+
+        ResponseEntity<List> renterView = listBookings(renterToken);
+        assertThat(renterView.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(renterView.getBody()).anyMatch(b -> bookingId.equals(((Map) b).get("id")));
+
+        ResponseEntity<List> strangerView = listBookings(strangerToken);
+        assertThat(strangerView.getBody()).noneMatch(b -> bookingId.equals(((Map) b).get("id")));
+    }
+
+    @Test
+    void owner_seesBookingOnTheirListingInList() {
+        Map<String, String> listing = createActiveListing("owner-list2@example.com", 300.0);
+        String renterToken = registerAndGetToken("renter-list2@example.com", Set.of());
+        LocalDate start = LocalDate.now().plusDays(180);
+        String bookingId = createConfirmedBooking(renterToken, listing.get("listingId"), start, start.plusDays(7));
+
+        ResponseEntity<List> ownerView = listBookings(listing.get("ownerToken"));
+        assertThat(ownerView.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(ownerView.getBody()).anyMatch(b -> bookingId.equals(((Map) b).get("id")));
+    }
+
+    @Test
+    void userWithBothRoles_seesUnionOfRenterAndOwnerBookings() {
+        // ownerRenterToken is OWNER of listingA and also books listingB as renter.
+        Map<String, String> listingA = createActiveListing("owner-list3a@example.com", 300.0);
+        Map<String, String> listingB = createActiveListing("owner-list3b@example.com", 300.0);
+        String otherRenterToken = registerAndGetToken("renter-list3@example.com", Set.of());
+        LocalDate start1 = LocalDate.now().plusDays(190);
+        String bookingOnA = createConfirmedBooking(otherRenterToken, listingA.get("listingId"), start1, start1.plusDays(7));
+
+        String ownerRenterToken = listingA.get("ownerToken");
+        LocalDate start2 = LocalDate.now().plusDays(200);
+        String bookingByOwnerOnB = createConfirmedBooking(ownerRenterToken, listingB.get("listingId"), start2, start2.plusDays(7));
+
+        ResponseEntity<List> view = listBookings(ownerRenterToken);
+        assertThat(view.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(view.getBody()).anyMatch(b -> bookingOnA.equals(((Map) b).get("id")));
+        assertThat(view.getBody()).anyMatch(b -> bookingByOwnerOnB.equals(((Map) b).get("id")));
+    }
+
+    @Test
+    void admin_seesAllBookings() {
+        Map<String, String> listing = createActiveListing("owner-list4@example.com", 300.0);
+        String renterToken = registerAndGetToken("renter-list4@example.com", Set.of());
+        LocalDate start = LocalDate.now().plusDays(210);
+        String bookingId = createConfirmedBooking(renterToken, listing.get("listingId"), start, start.plusDays(7));
+
+        String adminToken = grantAdminAndGetToken("admin-list4@example.com");
+        ResponseEntity<List> adminView = listBookings(adminToken);
+        assertThat(adminView.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(adminView.getBody()).anyMatch(b -> bookingId.equals(((Map) b).get("id")));
+    }
+
+    @Test
+    void unauthenticated_cannotListBookings() {
+        ResponseEntity<List> response = restTemplate.exchange(
+                url("/api/v1/bookings"), HttpMethod.GET, new HttpEntity<>(new HttpHeaders()), List.class);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+    }
 }

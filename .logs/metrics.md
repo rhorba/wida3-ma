@@ -40,3 +40,6 @@ Epic 2 (Warehouse Listings) complete: Stories 2.1 (owner creates listing, shippe
 
 ## 2026-07-28 (continued) — Epic 3 Batch 2
 60/60 backend tests passing, 88% instruction coverage / 77% branch coverage (JaCoCo, JDK 21). Gate (>=80% combined) met.
+
+## 2026-07-28 (continued) — Epic 3 Batch 3
+65/65 backend tests passing, 88% instruction coverage (JaCoCo, JDK 21). Gate (>=80%) met.
