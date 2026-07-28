@@ -43,3 +43,12 @@ Fixed the carried-over stuck-submit-button bug (RegisterPage + LoginPage, same r
 Manually verified both new features in a live Chrome session (claude-in-chrome) against local dev servers: search returns only ACTIVE listings, admin queue approve/reject both work and immediately reflect in search. Caught and fixed a real bug this surfaced: SearchPage duplicated CreateListingForm's "City" label, breaking accessibility-name uniqueness once both render on the dashboard together -- confirmed by the existing e2e test failing after the change, fixed by renaming to "Location".
 Dev-environment notes for next session: system default JDK is now 25, which breaks JaCoCo/Mockito -- must set JAVA_HOME to the separately-installed JDK 21 before running backend tests/dev server. Also, Git Bash (MSYS) auto-mangles env var values that look like absolute paths (e.g. VITE_API_BASE_URL=/api/v1) -- set MSYS_NO_PATHCONV=1 when starting Vite from this shell, or requests silently bypass the dev proxy.
 Open items: Epic 2 fully done. Sprint 3 remaining scope not yet started: Epic 3 (Booking \& Payment -- stories 3.1, 3.2) and Epic 4 (Admin views all bookings, story 4.1). No CI pipeline configured yet (flagged repeatedly across sessions). Next session: pick up Epic 3 or Epic 4 per docs/stories-wida3-ma.md.
+
+## SESSION_END — 2026-07-28
+User asked to end the session mid-batch. Epic 3 Batch 1 (Stories 3.1 + 3.2: core booking, mock payment, access codes) is complete and committed locally (d51a867) -- 54/54 backend tests passing, 87% coverage. NOT pushed to origin/main yet (holding until a further checkpoint, per user asking to end quickly rather than a deliberate hold-until-sprint-end choice -- confirm push timing next session).
+Resume point: Epic 3 remaining batches per the approved Comprehensive-scope plan (.logs/decisions.md) --
+  Batch 2: POST /api/v1/bookings/{id}/cancel (renter/owner/admin, mock refund, access code revoked)
+  Batch 3: GET /api/v1/bookings unified list, scoped by role (also satisfies Epic 4 Story 4.1)
+  Batch 4: frontend booking UI (Book action on SearchPage results, MyBookings list on dashboard)
+  Batch 5: verify + ship (security pass, manual browser check, e2e/recording decision, push)
+No new dev-environment issues this session beyond the already-logged JDK21/MSYS notes; one transient Testcontainers Postgres startup timeout during a full-suite run, resolved on retry (Docker resource contention, not a code issue).
