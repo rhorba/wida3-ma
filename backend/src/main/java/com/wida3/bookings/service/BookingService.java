@@ -6,9 +6,11 @@ import com.wida3.bookings.dto.BookingResponse;
 import com.wida3.bookings.dto.CreateBookingRequest;
 import com.wida3.bookings.entity.AccessCode;
 import com.wida3.bookings.entity.Booking;
+import com.wida3.bookings.entity.BookingStatus;
 import com.wida3.bookings.exception.BookingConflictException;
 import com.wida3.bookings.exception.BookingNotFoundException;
 import com.wida3.bookings.exception.InvalidBookingDatesException;
+import com.wida3.bookings.exception.InvalidBookingStateException;
 import com.wida3.bookings.exception.ListingNotBookableException;
 import com.wida3.bookings.repository.BookingRepository;
 import com.wida3.listings.entity.Listing;
@@ -111,6 +113,26 @@ public class BookingService {
     public BookingResponse get(UUID id, String requesterEmail, boolean isAdmin) {
         Booking booking = findOrThrow(id);
         requireViewAccess(booking, requesterEmail, isAdmin);
+        return toResponse(booking);
+    }
+
+    @Transactional
+    public BookingResponse cancel(UUID id, String requesterEmail, boolean isAdmin) {
+        Booking booking = findOrThrow(id);
+        requireViewAccess(booking, requesterEmail, isAdmin);
+
+        if (booking.getStatus() != BookingStatus.CONFIRMED) {
+            throw new InvalidBookingStateException(
+                    "Only a CONFIRMED booking can be cancelled (current status: " + booking.getStatus() + ")");
+        }
+
+        Payment payment = booking.getPayment();
+        if (payment != null && payment.getStatus() == PaymentStatus.SUCCEEDED) {
+            paymentService.refund(payment.getProviderRef(), payment.getAmount());
+            payment.markRefunded();
+        }
+
+        booking.cancel();
         return toResponse(booking);
     }
 

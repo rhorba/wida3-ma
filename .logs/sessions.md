@@ -52,3 +52,6 @@ Resume point: Epic 3 remaining batches per the approved Comprehensive-scope plan
   Batch 4: frontend booking UI (Book action on SearchPage results, MyBookings list on dashboard)
   Batch 5: verify + ship (security pass, manual browser check, e2e/recording decision, push)
 No new dev-environment issues this session beyond the already-logged JDK21/MSYS notes; one transient Testcontainers Postgres startup timeout during a full-suite run, resolved on retry (Docker resource contention, not a code issue).
+
+## SESSION_START — 2026-07-28 (continued)
+Resuming per last SESSION_END. Working tree clean, 2 local commits ahead of origin/main (d51a867 Epic 3 Batch 1, f593421 housekeeping) — not yet pushed. Resume point: Epic 3 Batch 2 (cancel booking endpoint) per approved Comprehensive-scope plan.

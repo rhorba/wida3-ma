@@ -44,6 +44,12 @@ public class BookingController {
         return ResponseEntity.ok(bookingService.get(id, authentication.getName(), isAdmin));
     }
 
+    @PostMapping("/{id}/cancel")
+    public ResponseEntity<BookingResponse> cancel(@PathVariable UUID id, Authentication authentication) {
+        boolean isAdmin = isAdmin(authentication);
+        return ResponseEntity.ok(bookingService.cancel(id, authentication.getName(), isAdmin));
+    }
+
     private boolean isAdmin(Authentication authentication) {
         for (GrantedAuthority authority : authentication.getAuthorities()) {
             if (authority.getAuthority().equals("ROLE_ADMIN")) {

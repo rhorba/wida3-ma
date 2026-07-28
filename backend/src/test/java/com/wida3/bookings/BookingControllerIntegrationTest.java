@@ -279,4 +279,115 @@ class BookingControllerIntegrationTest {
                 Map.class);
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
     }
+
+    private String createConfirmedBooking(String renterToken, String listingId, LocalDate start, LocalDate end) {
+        ResponseEntity<Map> created = restTemplate.exchange(
+                url("/api/v1/bookings"),
+                HttpMethod.POST,
+                new HttpEntity<>(bookingBody(listingId, start, end), authHeaders(renterToken)),
+                Map.class);
+        return (String) created.getBody().get("id");
+    }
+
+    @Test
+    void renter_canCancelOwnConfirmedBooking_refundsAndRevokesAccessCode() {
+        Map<String, String> listing = createActiveListing("owner-cancel1@example.com", 300.0);
+        String renterToken = registerAndGetToken("renter-cancel1@example.com", Set.of());
+        LocalDate start = LocalDate.now().plusDays(120);
+        String bookingId = createConfirmedBooking(renterToken, listing.get("listingId"), start, start.plusDays(7));
+
+        ResponseEntity<Map> cancelled = restTemplate.exchange(
+                url("/api/v1/bookings/" + bookingId + "/cancel"),
+                HttpMethod.POST,
+                new HttpEntity<>(authHeaders(renterToken)),
+                Map.class);
+
+        assertThat(cancelled.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(cancelled.getBody().get("status")).isEqualTo("CANCELLED");
+        assertThat(cancelled.getBody().get("accessCode")).isNull();
+    }
+
+    @Test
+    void owner_canCancelBookingOnTheirListing() {
+        Map<String, String> listing = createActiveListing("owner-cancel2@example.com", 300.0);
+        String renterToken = registerAndGetToken("renter-cancel2@example.com", Set.of());
+        LocalDate start = LocalDate.now().plusDays(130);
+        String bookingId = createConfirmedBooking(renterToken, listing.get("listingId"), start, start.plusDays(7));
+
+        ResponseEntity<Map> cancelled = restTemplate.exchange(
+                url("/api/v1/bookings/" + bookingId + "/cancel"),
+                HttpMethod.POST,
+                new HttpEntity<>(authHeaders(listing.get("ownerToken"))),
+                Map.class);
+
+        assertThat(cancelled.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(cancelled.getBody().get("status")).isEqualTo("CANCELLED");
+    }
+
+    @Test
+    void admin_canCancelAnyBooking() {
+        Map<String, String> listing = createActiveListing("owner-cancel3@example.com", 300.0);
+        String renterToken = registerAndGetToken("renter-cancel3@example.com", Set.of());
+        LocalDate start = LocalDate.now().plusDays(140);
+        String bookingId = createConfirmedBooking(renterToken, listing.get("listingId"), start, start.plusDays(7));
+
+        String adminToken = grantAdminAndGetToken("admin-cancel3@example.com");
+        ResponseEntity<Map> cancelled = restTemplate.exchange(
+                url("/api/v1/bookings/" + bookingId + "/cancel"),
+                HttpMethod.POST,
+                new HttpEntity<>(authHeaders(adminToken)),
+                Map.class);
+
+        assertThat(cancelled.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(cancelled.getBody().get("status")).isEqualTo("CANCELLED");
+    }
+
+    @Test
+    void stranger_cannotCancelBooking() {
+        Map<String, String> listing = createActiveListing("owner-cancel4@example.com", 300.0);
+        String renterToken = registerAndGetToken("renter-cancel4@example.com", Set.of());
+        LocalDate start = LocalDate.now().plusDays(150);
+        String bookingId = createConfirmedBooking(renterToken, listing.get("listingId"), start, start.plusDays(7));
+
+        String strangerToken = registerAndGetToken("stranger-cancel4@example.com", Set.of());
+        ResponseEntity<Map> response = restTemplate.exchange(
+                url("/api/v1/bookings/" + bookingId + "/cancel"),
+                HttpMethod.POST,
+                new HttpEntity<>(authHeaders(strangerToken)),
+                Map.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+    }
+
+    @Test
+    void cancellingAlreadyCancelledBooking_returnsConflict() {
+        Map<String, String> listing = createActiveListing("owner-cancel5@example.com", 300.0);
+        String renterToken = registerAndGetToken("renter-cancel5@example.com", Set.of());
+        LocalDate start = LocalDate.now().plusDays(160);
+        String bookingId = createConfirmedBooking(renterToken, listing.get("listingId"), start, start.plusDays(7));
+
+        restTemplate.exchange(
+                url("/api/v1/bookings/" + bookingId + "/cancel"),
+                HttpMethod.POST,
+                new HttpEntity<>(authHeaders(renterToken)),
+                Map.class);
+
+        ResponseEntity<Map> second = restTemplate.exchange(
+                url("/api/v1/bookings/" + bookingId + "/cancel"),
+                HttpMethod.POST,
+                new HttpEntity<>(authHeaders(renterToken)),
+                Map.class);
+
+        assertThat(second.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+    }
+
+    @Test
+    void unauthenticated_cannotCancelBooking() {
+        ResponseEntity<Map> response = restTemplate.exchange(
+                url("/api/v1/bookings/" + UUID.randomUUID() + "/cancel"),
+                HttpMethod.POST,
+                new HttpEntity<>(new HttpHeaders()),
+                Map.class);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+    }
 }

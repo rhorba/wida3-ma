@@ -9,6 +9,7 @@ import com.wida3.auth.exception.InvalidRoleRequestException;
 import com.wida3.bookings.exception.BookingConflictException;
 import com.wida3.bookings.exception.BookingNotFoundException;
 import com.wida3.bookings.exception.InvalidBookingDatesException;
+import com.wida3.bookings.exception.InvalidBookingStateException;
 import com.wida3.bookings.exception.ListingNotBookableException;
 import com.wida3.files.exception.FileTooLargeException;
 import com.wida3.files.exception.UnsupportedFileTypeException;
@@ -132,6 +133,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(BookingConflictException.class)
     public ResponseEntity<ErrorResponse> handleBookingConflict(BookingConflictException ex) {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(new ErrorResponse("BOOKING_CONFLICT", ex.getMessage()));
+    }
+
+    @ExceptionHandler(InvalidBookingStateException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidBookingState(InvalidBookingStateException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(new ErrorResponse("INVALID_BOOKING_STATE", ex.getMessage()));
     }
 
     @ExceptionHandler(AccessDeniedException.class)
