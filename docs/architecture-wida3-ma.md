@@ -34,6 +34,14 @@ A modular-monolith Spring Boot API backed by PostgreSQL/PostGIS, serving a React
 - **Decision**: Implement `PaymentService` as an interface with a `MockPaymentServiceImpl` that simulates gateway success/failure synchronously (e.g. configurable via a request flag or deterministic rule for testing). No external HTTP call, no webhook.
 - **Alternatives**: Waiting to build payment until a real gateway is chosen — rejected, blocks the whole booking flow (Story 3.1) from being buildable/testable.
 - **Consequences**: Booking flow is fully functional end-to-end in dev/demo, but not launch-ready — swapping in a real gateway later means adding a new `PaymentService` implementation, not changing callers.
+- **Testing decline scenarios**: there is no card-entry field anywhere in the app, so `MockPaymentServiceImpl` uses the total booking price's fractional cents as its only per-request signal (e.g. set a listing's weekly price so a 1-week booking lands on the magic cents). Any other amount succeeds (unless `app.payment.mock.always-succeed=false`, which declines everything with a generic reason regardless of amount).
+
+  | Total price cents | Outcome | `paymentFailureReason` |
+  |---|---|---|
+  | `.13` | Declined | Insufficient funds |
+  | `.66` | Declined | Card declined by issuer |
+  | `.99` | Declined, after a simulated ~300ms delay | Payment gateway timed out, please try again |
+  | anything else | Succeeds | — |
 
 ### ADR-6: Local disk storage for listing photos
 - **Context**: No object storage provider decided yet; owners need to upload photos to test the listing flow.

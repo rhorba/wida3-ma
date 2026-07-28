@@ -91,7 +91,7 @@ public class BookingService {
             AccessCode accessCode = new AccessCode(generateAccessCode(), expiryFor(request.endDate()));
             booking.confirm(payment, accessCode);
         } else {
-            Payment payment = new Payment(totalPrice, PaymentStatus.FAILED, null);
+            Payment payment = new Payment(totalPrice, PaymentStatus.FAILED, null, result.failureReason());
             booking.markFailedPayment(payment);
         }
 
@@ -182,7 +182,7 @@ public class BookingService {
     BookingResponse toResponse(Booking booking) {
         String code = booking.getAccessCode() != null ? booking.getAccessCode().getCode() : null;
         String failureReason = (booking.getPayment() != null && booking.getPayment().getStatus() == PaymentStatus.FAILED)
-                ? "Payment declined by mock gateway"
+                ? booking.getPayment().getFailureReason()
                 : null;
         return new BookingResponse(
                 booking.getId(),

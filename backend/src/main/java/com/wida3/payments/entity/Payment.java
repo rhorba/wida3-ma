@@ -42,6 +42,9 @@ public class Payment {
     @Column(nullable = false)
     private PaymentStatus status;
 
+    @Column(name = "failure_reason")
+    private String failureReason;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
@@ -52,9 +55,14 @@ public class Payment {
     }
 
     public Payment(BigDecimal amount, PaymentStatus status, String providerRef) {
+        this(amount, status, providerRef, null);
+    }
+
+    public Payment(BigDecimal amount, PaymentStatus status, String providerRef, String failureReason) {
         this.amount = amount;
         this.status = status;
         this.providerRef = providerRef;
+        this.failureReason = failureReason;
     }
 
     @PrePersist
@@ -99,5 +107,9 @@ public class Payment {
 
     public PaymentStatus getStatus() {
         return status;
+    }
+
+    public String getFailureReason() {
+        return failureReason;
     }
 }

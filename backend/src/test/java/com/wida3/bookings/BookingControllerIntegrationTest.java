@@ -457,6 +457,24 @@ class BookingControllerIntegrationTest {
     }
 
     @Test
+    void magicCentsAmount_declinesWithSpecificReason_bookingCancelledNoAccessCode() {
+        Map<String, String> listing = createActiveListing("owner-magiccents1@example.com", 100.13);
+        String renterToken = registerAndGetToken("renter-magiccents1@example.com", Set.of());
+        LocalDate start = LocalDate.now().plusDays(220);
+
+        ResponseEntity<Map> response = restTemplate.exchange(
+                url("/api/v1/bookings"),
+                HttpMethod.POST,
+                new HttpEntity<>(bookingBody(listing.get("listingId"), start, start.plusDays(7)), authHeaders(renterToken)),
+                Map.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+        assertThat(response.getBody().get("status")).isEqualTo("CANCELLED");
+        assertThat(response.getBody().get("accessCode")).isNull();
+        assertThat(response.getBody().get("paymentFailureReason")).isEqualTo("Insufficient funds");
+    }
+
+    @Test
     void unauthenticated_cannotListBookings() {
         ResponseEntity<List> response = restTemplate.exchange(
                 url("/api/v1/bookings"), HttpMethod.GET, new HttpEntity<>(new HttpHeaders()), List.class);

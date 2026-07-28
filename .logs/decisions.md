@@ -30,3 +30,6 @@ Sprint 3 scope: Epic 2 completion (Stories 2.2 public search, 2.3 admin approve/
 
 ## Decision — 2026-07-27
 Epic 3 (Booking & Payment) approach: Comprehensive tier chosen over Simple/Balanced -- adds cancellation/refund, idempotency keys on booking creation, and a unified booking-list endpoint (which also satisfies Epic 4 Story 4.1 admin-views-all-bookings) on top of the base row-lock+transaction double-booking guard. Also folding in the Postgres EXCLUDE constraint (btree_gist) from the Balanced tier as defense-in-depth since Comprehensive is the most-robust tier. This exceeds what stories 3.1/3.2 strictly require per docs/stories-wida3-ma.md -- noting as an intentional scope expansion the user chose explicitly, not scope creep.
+
+## Decision — 2026-07-28
+Mock payment gateway realistic failure scenarios: Comprehensive tier chosen. Trigger mechanism: fractional cents of the total booking price (weeklyPrice x weeks) -- .13 = insufficient funds, .66 = card declined, .99 = simulated gateway timeout (real delay). Whole-dollar/other-cent amounts succeed as today (or fail globally if app.payment.mock.always-succeed=false, unchanged). No card-entry field exists anywhere in the app (by design, per ADR-5), so amount is the only per-request signal available without adding new API surface.

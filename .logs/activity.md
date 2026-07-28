@@ -117,3 +117,9 @@ Logged the cancel double-refund race (found and fixed this session) to .logs/ris
 
 ## 2026-07-28 (continued) — Epic 3 SHIP: push
 Pushed all 5 Epic 3 commits (Batches 2-5) to origin/main. f593421..f89f289 main -> main. CI: no pipeline configured yet (open item, flagged repeatedly across sessions -- not a blocker per rule 11 since there is no pipeline to be red).
+
+## 2026-07-28 (continued) — Mock payment gateway: realistic failure scenarios (Comprehensive)
+Replaced the single hardcoded decline message with three distinct, deterministic failure scenarios triggered by the total booking price's fractional cents (no card-entry field exists anywhere in the app, so amount is the only per-request signal without adding new API surface): .13 -> "Insufficient funds", .66 -> "Card declined by issuer", .99 -> "Payment gateway timed out, please try again" (with a real ~300ms simulated delay). Any other amount succeeds; app.payment.mock.always-succeed=false still declines everything with the generic message, unchanged.
+V7 migration adds payments.failure_reason; Payment entity carries it; BookingService now persists and surfaces the actual PaymentResult.failureReason instead of a hardcoded string (this was a latent bug -- the field existed in PaymentResult since Sprint 3 but was being discarded).
+Added a QA mapping table to docs/architecture-wida3-ma.md next to ADR-5.
+New tests: MockPaymentServiceImplTest (6 unit tests, one per branch) + 1 new booking integration test asserting the specific reason surfaces end-to-end. Full backend suite: 72/72 tests passing, 88% instruction coverage (JaCoCo, JDK 21). Gate (>=80%) met.
