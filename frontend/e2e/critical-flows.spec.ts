@@ -120,3 +120,69 @@ test("admin approves one listing and rejects another; only the approved one is p
   await page.getByRole("button", { name: "Search" }).click();
   await expect(page.getByText("No warehouses match")).toBeVisible();
 });
+
+test("renter books an approved listing, sees the access code, then cancels the booking", async ({ page }) => {
+  const stamp = Date.now();
+  const city = `BookingDemo-${stamp}`;
+  const ownerEmail = `owner-booking-${stamp}@wida3.test`;
+  const adminEmail = `admin-booking-${stamp}@wida3.test`;
+  const renterEmail = `renter-booking-${stamp}@wida3.test`;
+
+  await registerOwnerAndCreateListing(page, ownerEmail, city, "Bookable warehouse");
+
+  await page.goto("/");
+  await page.getByRole("button", { name: "Register" }).click();
+  await page.getByLabel("Full name").fill("Booking Demo Admin");
+  await page.getByLabel("Email").fill(adminEmail);
+  await page.getByLabel("Password").fill(PASSWORD);
+  await page.getByRole("button", { name: "Register" }).click();
+  await expect(page.getByRole("heading", { name: `Logged in as ${adminEmail}` })).toBeVisible();
+  await page.getByRole("button", { name: "Log out" }).click();
+
+  execSync(
+    `docker exec wida3-dev-postgres psql -U wida3_app -d wida3 -c "INSERT INTO user_roles (user_id, role_id) SELECT u.id, r.id FROM users u, roles r WHERE u.email='${adminEmail}' AND r.name='ADMIN';"`,
+  );
+
+  await page.goto("/");
+  await page.getByRole("button", { name: "Log in" }).click();
+  await page.getByLabel("Email").fill(adminEmail);
+  await page.getByLabel("Password").fill(PASSWORD);
+  await page.getByRole("button", { name: "Log in" }).click();
+  await page.getByRole("listitem").filter({ hasText: "Bookable warehouse" }).getByRole("button", { name: "Approve" }).click();
+  await page.getByRole("button", { name: "Log out" }).click();
+
+  await page.goto("/");
+  await page.getByRole("button", { name: "Register" }).click();
+  await page.getByLabel("Full name").fill("Booking Demo Renter");
+  await page.getByLabel("Email").fill(renterEmail);
+  await page.getByLabel("Password").fill(PASSWORD);
+  await page.getByRole("button", { name: "Register" }).click();
+  await expect(page.getByRole("heading", { name: `Logged in as ${renterEmail}` })).toBeVisible();
+
+  const searchSection = page.getByRole("heading", { name: "Search warehouses" }).locator("xpath=..");
+  const bookingsSection = page.getByRole("heading", { name: "My bookings" }).locator("xpath=..");
+
+  await searchSection.getByLabel("Location").fill(city);
+  await searchSection.getByRole("button", { name: "Search" }).click();
+  const resultItem = searchSection.getByRole("listitem").filter({ hasText: "Bookable warehouse" });
+  await expect(resultItem).toBeVisible();
+  await resultItem.getByRole("button", { name: "Book" }).click();
+
+  const start = new Date();
+  start.setDate(start.getDate() + 14);
+  const end = new Date(start);
+  end.setDate(end.getDate() + 7);
+  const iso = (d: Date) => d.toISOString().slice(0, 10);
+  await resultItem.getByLabel("Start date").fill(iso(start));
+  await resultItem.getByLabel("End date").fill(iso(end));
+  await resultItem.getByRole("button", { name: "Confirm booking" }).click();
+  await expect(resultItem.getByText(/Booked! Access code:/)).toBeVisible({ timeout: 10_000 });
+
+  const bookingItem = bookingsSection.getByRole("listitem").filter({ hasText: "Bookable warehouse" });
+  await expect(bookingItem).toBeVisible();
+  await expect(bookingItem.getByText("CONFIRMED")).toBeVisible();
+  await expect(bookingItem.getByText(/access code:/)).toBeVisible();
+
+  await bookingItem.getByRole("button", { name: "Cancel" }).click();
+  await expect(bookingItem.getByText("CANCELLED")).toBeVisible({ timeout: 10_000 });
+});

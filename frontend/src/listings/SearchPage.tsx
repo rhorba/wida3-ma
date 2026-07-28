@@ -15,7 +15,12 @@ interface ListingSearchResult {
   photoUrls: string[];
 }
 
-export function SearchPage() {
+interface BookingOutcome {
+  status: "success" | "error";
+  message: string;
+}
+
+export function SearchPage({ onBooked }: { onBooked?: () => void } = {}) {
   const [city, setCity] = useState("");
   const [warehouseType, setWarehouseType] = useState<(typeof WAREHOUSE_TYPES)[number]>("");
   const [minSizeSqm, setMinSizeSqm] = useState("");
@@ -24,6 +29,51 @@ export function SearchPage() {
   const [error, setError] = useState<string | null>(null);
   const [searching, setSearching] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
+  const [bookingListingId, setBookingListingId] = useState<string | null>(null);
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [booking, setBooking] = useState(false);
+  const [bookingOutcome, setBookingOutcome] = useState<Record<string, BookingOutcome>>({});
+
+  function openBookingForm(listingId: string) {
+    setBookingListingId(listingId);
+    setStartDate("");
+    setEndDate("");
+  }
+
+  async function handleBook(listingId: string) {
+    setBooking(true);
+    setBookingOutcome((prev) => ({ ...prev, [listingId]: { status: "success", message: "" } }));
+    try {
+      const response = await apiFetch("/bookings", {
+        method: "POST",
+        body: JSON.stringify({ listingId, startDate, endDate }),
+      });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(body.message ?? "Booking failed, try again");
+      }
+      const message =
+        body.status === "CONFIRMED"
+          ? `Booked! Access code: ${body.accessCode}`
+          : `Booking failed: ${body.paymentFailureReason ?? "payment declined"}`;
+      setBookingOutcome((prev) => ({
+        ...prev,
+        [listingId]: { status: body.status === "CONFIRMED" ? "success" : "error", message },
+      }));
+      if (body.status === "CONFIRMED") {
+        setBookingListingId(null);
+        onBooked?.();
+      }
+    } catch (err) {
+      setBookingOutcome((prev) => ({
+        ...prev,
+        [listingId]: { status: "error", message: err instanceof Error ? err.message : "Booking failed, try again" },
+      }));
+    } finally {
+      setBooking(false);
+    }
+  }
 
   async function handleSearch(e: FormEvent) {
     e.preventDefault();
@@ -86,6 +136,33 @@ export function SearchPage() {
           <li key={listing.id}>
             <strong>{listing.title}</strong> — {listing.city}, {listing.warehouseType}, {listing.sizeSqm} sqm,{" "}
             {listing.weeklyPrice}/week
+            {bookingListingId === listing.id ? (
+              <div>
+                <label>
+                  Start date
+                  <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+                </label>
+                <label>
+                  End date
+                  <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+                </label>
+                <button type="button" disabled={booking || !startDate || !endDate} onClick={() => handleBook(listing.id)}>
+                  {booking ? "Booking..." : "Confirm booking"}
+                </button>
+                <button type="button" onClick={() => setBookingListingId(null)}>
+                  Cancel
+                </button>
+              </div>
+            ) : (
+              <button type="button" onClick={() => openBookingForm(listing.id)}>
+                Book
+              </button>
+            )}
+            {bookingOutcome[listing.id]?.message && (
+              <p role={bookingOutcome[listing.id].status === "error" ? "alert" : "status"}>
+                {bookingOutcome[listing.id].message}
+              </p>
+            )}
           </li>
         ))}
       </ul>

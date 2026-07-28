@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { apiFetch } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
+import { MyBookings } from "../bookings/MyBookings";
 import { AdminApprovalQueue } from "../listings/AdminApprovalQueue";
 import { CreateListingForm } from "../listings/CreateListingForm";
 import { SearchPage } from "../listings/SearchPage";
@@ -8,6 +9,7 @@ import { SearchPage } from "../listings/SearchPage";
 export function DashboardPage() {
   const { user, logout } = useAuth();
   const [refreshResult, setRefreshResult] = useState<string | null>(null);
+  const [bookingsVersion, setBookingsVersion] = useState(0);
 
   async function handleForceRefresh() {
     // Manually exercises the silent-refresh path for verification (real 401-triggered
@@ -25,7 +27,8 @@ export function DashboardPage() {
       <button onClick={() => logout()}>Log out</button>
       {user?.roles.includes("OWNER") && <CreateListingForm />}
       {user?.roles.includes("ADMIN") && <AdminApprovalQueue />}
-      <SearchPage />
+      <MyBookings key={bookingsVersion} />
+      <SearchPage onBooked={() => setBookingsVersion((v) => v + 1)} />
     </div>
   );
 }
