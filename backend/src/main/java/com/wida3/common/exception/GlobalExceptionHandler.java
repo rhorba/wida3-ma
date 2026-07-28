@@ -6,6 +6,10 @@ import com.wida3.auth.exception.EmailAlreadyRegisteredException;
 import com.wida3.auth.exception.InvalidCredentialsException;
 import com.wida3.auth.exception.InvalidRefreshTokenException;
 import com.wida3.auth.exception.InvalidRoleRequestException;
+import com.wida3.bookings.exception.BookingConflictException;
+import com.wida3.bookings.exception.BookingNotFoundException;
+import com.wida3.bookings.exception.InvalidBookingDatesException;
+import com.wida3.bookings.exception.ListingNotBookableException;
 import com.wida3.files.exception.FileTooLargeException;
 import com.wida3.files.exception.UnsupportedFileTypeException;
 import com.wida3.listings.exception.InvalidListingStateException;
@@ -108,6 +112,26 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(InvalidListingStateException.class)
     public ResponseEntity<ErrorResponse> handleInvalidListingState(InvalidListingStateException ex) {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(new ErrorResponse("INVALID_LISTING_STATE", ex.getMessage()));
+    }
+
+    @ExceptionHandler(BookingNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleBookingNotFound(BookingNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ErrorResponse("BOOKING_NOT_FOUND", ex.getMessage()));
+    }
+
+    @ExceptionHandler(InvalidBookingDatesException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidBookingDates(InvalidBookingDatesException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ErrorResponse("INVALID_BOOKING_DATES", ex.getMessage()));
+    }
+
+    @ExceptionHandler(ListingNotBookableException.class)
+    public ResponseEntity<ErrorResponse> handleListingNotBookable(ListingNotBookableException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(new ErrorResponse("LISTING_NOT_BOOKABLE", ex.getMessage()));
+    }
+
+    @ExceptionHandler(BookingConflictException.class)
+    public ResponseEntity<ErrorResponse> handleBookingConflict(BookingConflictException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(new ErrorResponse("BOOKING_CONFLICT", ex.getMessage()));
     }
 
     @ExceptionHandler(AccessDeniedException.class)

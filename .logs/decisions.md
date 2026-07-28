@@ -27,3 +27,6 @@
 
 ## Decision — 2026-07-27
 Sprint 3 scope: Epic 2 completion (Stories 2.2 public search, 2.3 admin approve/reject). Approach chosen: simple unpaginated exact-match search (city/type/size range), plus a persisted reject reason (new `rejection_reason` column) on the admin reject action -- rejected the fully "Balanced" option (no pagination yet, YAGNI) and "Comprehensive" (geo-radius search deferred, DB doc already flags it as future work).
+
+## Decision — 2026-07-27
+Epic 3 (Booking & Payment) approach: Comprehensive tier chosen over Simple/Balanced -- adds cancellation/refund, idempotency keys on booking creation, and a unified booking-list endpoint (which also satisfies Epic 4 Story 4.1 admin-views-all-bookings) on top of the base row-lock+transaction double-booking guard. Also folding in the Postgres EXCLUDE constraint (btree_gist) from the Balanced tier as defense-in-depth since Comprehensive is the most-robust tier. This exceeds what stories 3.1/3.2 strictly require per docs/stories-wida3-ma.md -- noting as an intentional scope expansion the user chose explicitly, not scope creep.

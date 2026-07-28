@@ -37,3 +37,6 @@ app:
     max-size-mb: 5
     max-photos-per-listing: 10
     allowed-content-types: image/jpeg,image/png,image/webp
+  payment:
+    mock:
+      always-succeed: ${PAYMENT_MOCK_ALWAYS_SUCCEED:true}
