@@ -110,3 +110,7 @@ Reviewed the two new endpoints (cancel, list) against the OWASP checklist (.clau
 - Adversarial "bulk endpoint leaks cross-tenant data": GET /bookings scoping verified by test (a stranger's booking never appears in another renter's list).
 Found and fixed one real gap: BookingService.cancel() read the booking via a plain findById, then checked status and issued a refund without holding a row lock -- two concurrent cancel calls on the same booking could both pass the CONFIRMED check and double-refund (TOCTOU race), unlike booking creation which already row-locks the listing (Comprehensive-tier decision, 2026-07-27). Fixed by adding BookingRepository.findByIdForUpdate (PESSIMISTIC_WRITE, mirrors the existing Listing lock) and using it in cancel(). Re-ran the full booking suite (20 tests) after the fix -- all green.
 `npm audit --production` on frontend: 0 vulnerabilities.
+
+## 2026-07-28 (continued) — Epic 3 Batch 5: version recording + risk log
+Saved .recordings/v0.3.0-epic3-2026-07-28-renter-books-and-cancels.webm (renter searches -> books -> sees access code -> cancels, from the Playwright run against the live dev servers) per CLAUDE.md rule 9, marking Epic 3 + Epic 4 Story 4.1 as a completed project version (v0.3.0).
+Logged the cancel double-refund race (found and fixed this session) to .logs/risks.md.
