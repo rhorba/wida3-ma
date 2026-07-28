@@ -114,3 +114,6 @@ Found and fixed one real gap: BookingService.cancel() read the booking via a pla
 ## 2026-07-28 (continued) — Epic 3 Batch 5: version recording + risk log
 Saved .recordings/v0.3.0-epic3-2026-07-28-renter-books-and-cancels.webm (renter searches -> books -> sees access code -> cancels, from the Playwright run against the live dev servers) per CLAUDE.md rule 9, marking Epic 3 + Epic 4 Story 4.1 as a completed project version (v0.3.0).
 Logged the cancel double-refund race (found and fixed this session) to .logs/risks.md.
+
+## 2026-07-28 (continued) — Epic 3 SHIP: push
+Pushed all 5 Epic 3 commits (Batches 2-5) to origin/main. f593421..f89f289 main -> main. CI: no pipeline configured yet (open item, flagged repeatedly across sessions -- not a blocker per rule 11 since there is no pipeline to be red).

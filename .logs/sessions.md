@@ -55,3 +55,8 @@ No new dev-environment issues this session beyond the already-logged JDK21/MSYS 
 
 ## SESSION_START — 2026-07-28 (continued)
 Resuming per last SESSION_END. Working tree clean, 2 local commits ahead of origin/main (d51a867 Epic 3 Batch 1, f593421 housekeeping) — not yet pushed. Resume point: Epic 3 Batch 2 (cancel booking endpoint) per approved Comprehensive-scope plan.
+
+## SESSION_END — 2026-07-28 (Epic 3 shipped)
+Epic 3 (Booking & Payment, Comprehensive scope) fully shipped across Batches 2-5: cancel endpoint (d38be57), unified bookings list / Epic 4 Story 4.1 (181ce64), frontend booking UI (4a21379), a security-review fix for a cancel double-refund race (fae032f), and a v0.3.0 version recording (f89f289). All pushed to origin/main. Working tree clean.
+Backend: 65/65 tests, 88% coverage. Frontend: typecheck/build/lint clean, 3/3 e2e passing. Dev servers (backend :8091, frontend :5176) stopped at session end; wida3-dev-postgres container left running (disposable, reusable).
+Open items carried forward (flagged repeatedly, not yet addressed): no CI pipeline configured. Epic 5 (real payment gateway, real object storage) remains pre-launch/not-yet-scheduled per docs/stories-wida3-ma.md. Next session: pick next scope -- Epic 5 readiness work, CI pipeline setup, or user's next priority.

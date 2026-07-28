@@ -43,3 +43,10 @@ Epic 2 (Warehouse Listings) complete: Stories 2.1 (owner creates listing, shippe
 
 ## 2026-07-28 (continued) — Epic 3 Batch 3
 65/65 backend tests passing, 88% instruction coverage (JaCoCo, JDK 21). Gate (>=80%) met.
+
+## 2026-07-28 — Epic 3 SPRINT_SNAPSHOT (v0.3.0)
+Epic 3 (Booking & Payment, Comprehensive tier) complete: Story 3.1 renter booking, Story 3.2 access codes, plus cancellation/refund, unified bookings list (also closes Epic 4 Story 4.1), and idempotency keys.
+Backend: 65/65 tests passing, 88% instruction coverage (JaCoCo, JDK 21). Gate (>=80%) met.
+Frontend: tsc --noEmit clean, vite build clean, oxlint clean (1 pre-existing warning), 3/3 Playwright e2e tests passing.
+Security: OWASP-checklist pass on the 2 new endpoints; found and fixed a cancel double-refund race (row-lock added).
+Recording: .recordings/v0.3.0-epic3-2026-07-28-renter-books-and-cancels.webm.
