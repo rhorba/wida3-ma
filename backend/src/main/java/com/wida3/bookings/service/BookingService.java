@@ -132,7 +132,7 @@ public class BookingService {
 
     @Transactional
     public BookingResponse cancel(UUID id, String requesterEmail, boolean isAdmin) {
-        Booking booking = findOrThrow(id);
+        Booking booking = bookingRepository.findByIdForUpdate(id).orElseThrow(() -> new BookingNotFoundException(id));
         requireViewAccess(booking, requesterEmail, isAdmin);
 
         if (booking.getStatus() != BookingStatus.CONFIRMED) {
