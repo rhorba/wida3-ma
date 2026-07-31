@@ -132,3 +132,9 @@ New tests: MockPaymentServiceImplTest (6 unit tests, one per branch) + 1 new boo
 
 ## 2026-07-31 — EXECUTE Batch 1: CI foundation
 Created .github/workflows/ci.yml with backend job (JDK 21 via setup-java, `mvn -B verify`) and frontend job (npm ci, oxlint, tsc+vite build). No env vars needed for the backend job -- confirmed all four integration test classes already supply spring.datasource.url/DB_USER/DB_PASSWORD/app.jwt.secret via @DynamicPropertySource against their own Testcontainers Postgres instance.
+
+## 2026-07-31 (continued) — EXECUTE Batch 2: coverage gate + security scanning
+Loaded .claude/.skills/devops-devsecops/references/cicd-security.md (rule 12, document-first) before writing the scan jobs; templates below match its Hardened Workflow Template.
+Backend: added a `jacoco:check` execution to backend/pom.xml bound to the `verify` phase (BUNDLE/INSTRUCTION/COVEREDRATIO >= 0.80), so `mvn -B verify` in CI now fails the build if coverage drops below 80% -- closes CLAUDE.md rule 6 as an automated gate rather than a manual check. Verified locally with JDK 21 + the cached Maven 3.9.16 distribution (~/.m2/wrapper/dists): 72/72 tests, "All coverage checks have been met.", BUILD SUCCESS.
+CI: added three jobs to .github/workflows/ci.yml -- secrets-scan (gitleaks/gitleaks-action@v2, full history via fetch-depth 0), sca (aquasecurity/trivy-action@master, fs scan, CRITICAL/HIGH, exit-code 1), sast (returntocorp/semgrep-action@v1, p/owasp-top-ten, security-events: write permission scoped to that job only). None of these three have run against live Actions yet -- first push may surface real findings (dependency CVEs, secret false-positives) that need triage; per rule 11 that's this session's responsibility to fix before SHIP, not a later one's.
+Not pushed yet -- same holding pattern as Batch 1 (mandatory CI-watch obligation on push, plan is to push once through Batch 3 or at user's direction). Committed locally.
