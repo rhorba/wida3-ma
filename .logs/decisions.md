@@ -36,3 +36,6 @@ Mock payment gateway realistic failure scenarios: Comprehensive tier chosen. Tri
 
 ## 2026-07-30 — BRAINSTORM: CI pipeline tier
 Chose COMPREHENSIVE: build+test+coverage gate (JaCoCo 80%) + secrets scan (gitleaks) + SCA (trivy fs) + SAST (Semgrep OWASP) + Playwright e2e-in-CI with live Postgres service. Rejected container/IaC/SBOM/cosign scanning from the reference doc as not applicable yet -- no Dockerfile or cloud infra exists (YAGNI).
+
+## Decision — 2026-07-31
+Epic 5 (Launch Readiness: Story 5.1 real payment gateway, Story 5.2 real object storage) deferred indefinitely -- staying on the existing MVP mocks (`MockPaymentServiceImpl`, local-disk `FileStorageService`) rather than integrating a real provider now. No code change: both already function as the stand-ins Architecture ADR-5/ADR-6 describe. Per YAGNI -- revisit only when an actual pre-launch deployment (a payment provider contract, hosting beyond localhost) is on the table. `docs/stories-wida3-ma.md` Epic 5 already marks these "not scheduled yet"; this just confirms that's still the call.
