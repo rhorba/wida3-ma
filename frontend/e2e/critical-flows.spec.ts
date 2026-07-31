@@ -193,3 +193,46 @@ test("renter books an approved listing, sees the access code, then cancels the b
   await bookingItem.getByRole("button", { name: "Cancel" }).click();
   await expect(bookingItem.getByText("CANCELLED")).toBeVisible({ timeout: 10_000 });
 });
+
+test("owner sees their listing in My Listings, edits it, then deactivates it", async ({ page }) => {
+  const stamp = Date.now();
+  const email = `owner-manage-${stamp}@wida3.test`;
+
+  await page.goto("/");
+  await page.getByRole("button", { name: "Register" }).click();
+  await page.getByLabel("Full name").fill("Manage Demo Owner");
+  await page.getByLabel("Email").fill(email);
+  await page.getByLabel("Password").fill(PASSWORD);
+  await page.getByLabel("I want to list a warehouse (Owner)").check();
+  await page.getByRole("button", { name: "Register" }).click();
+  await expect(page.getByRole("heading", { name: `Logged in as ${email}` })).toBeVisible();
+
+  await page.getByLabel("Title").fill("Editable warehouse");
+  await page.getByLabel("City").fill("Fes");
+  await page.getByLabel("Address").fill("5 Rue Test");
+  await page.getByLabel("Warehouse type").selectOption("DRY");
+  await page.getByLabel(/Size \(sqm\)/).fill("120");
+  await page.getByLabel("Weekly price").fill("400");
+  await page.getByRole("button", { name: "Create listing" }).click();
+  await expect(page.getByText("Listing created — pending admin approval.")).toBeVisible({ timeout: 10_000 });
+
+  const myListingsSection = page.getByRole("heading", { name: "My listings" }).locator("xpath=..");
+  const listingItem = myListingsSection.getByRole("listitem").filter({ hasText: "Editable warehouse" });
+  await expect(listingItem).toBeVisible();
+  await expect(listingItem.getByText("PENDING_APPROVAL")).toBeVisible();
+
+  // Once editing starts, the listing's title moves from rendered text into an input's value, so
+  // the hasText-based listingItem locator above would stop matching -- scope directly to the
+  // section instead (there's exactly one listing here, so this stays unambiguous).
+  await listingItem.getByRole("button", { name: "Edit" }).click();
+  await myListingsSection.getByLabel("Edit title").fill("Edited warehouse title");
+  await myListingsSection.getByRole("button", { name: "Save" }).click();
+
+  const editedItem = myListingsSection.getByRole("listitem").filter({ hasText: "Edited warehouse title" });
+  await expect(editedItem).toBeVisible();
+
+  await editedItem.getByRole("button", { name: "Deactivate" }).click();
+  await expect(editedItem.getByText("INACTIVE")).toBeVisible({ timeout: 10_000 });
+  await expect(editedItem.getByRole("button", { name: "Edit" })).toHaveCount(0);
+  await expect(editedItem.getByRole("button", { name: "Deactivate" })).toHaveCount(0);
+});

@@ -9,7 +9,7 @@ interface PhotoPreview {
   previewUrl: string;
 }
 
-export function CreateListingForm() {
+export function CreateListingForm({ onCreated }: { onCreated?: () => void } = {}) {
   const [title, setTitle] = useState("");
   const [city, setCity] = useState("");
   const [address, setAddress] = useState("");
@@ -77,6 +77,7 @@ export function CreateListingForm() {
       setSizeSqm("");
       setWeeklyPrice("");
       setPhotos([]);
+      onCreated?.();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
     } finally {

@@ -53,3 +53,9 @@ Recording: .recordings/v0.3.0-epic3-2026-07-28-renter-books-and-cancels.webm.
 
 ## 2026-07-28 — Mock payment gateway failure scenarios
 72/72 backend tests passing, 88% instruction coverage (JaCoCo, JDK 21). Gate (>=80%) met.
+
+## 2026-07-31 — PRD gap closure: My Listings, edit/deactivate, availability search
+80/80 backend tests passing (8 new), 89.7% instruction coverage (JaCoCo, JDK 21, on Spring Boot 3.5.16). Gate (>=80%) met.
+Frontend: tsc --noEmit clean, vite build clean, oxlint clean (1 pre-existing warning), 4/4 Playwright e2e tests passing (1 new).
+Manually verified the date-range search live (claude-in-chrome against local dev servers): GET /listings/search?availableFrom=...&availableUntil=... returns 200 with correctly filtered results.
+Security self-check: ownership checks on PUT /listings/{id} and PATCH /listings/{id}/deactivate (403 for non-owners, tested); all new query params bound via JPQL named parameters, no string concatenation.

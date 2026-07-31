@@ -108,6 +108,28 @@ public class Listing {
         photo.setListing(this);
     }
 
+    public void update(
+            String title,
+            String city,
+            String address,
+            WarehouseType warehouseType,
+            BigDecimal sizeSqm,
+            BigDecimal weeklyPrice) {
+        this.title = title;
+        this.city = city;
+        this.address = address;
+        this.warehouseType = warehouseType;
+        this.sizeSqm = sizeSqm;
+        this.weeklyPrice = weeklyPrice;
+    }
+
+    public void deactivate() {
+        if (status == ListingStatus.INACTIVE) {
+            throw new InvalidListingStateException(status, "deactivate");
+        }
+        status = ListingStatus.INACTIVE;
+    }
+
     public void approve() {
         if (status != ListingStatus.PENDING_APPROVAL) {
             throw new InvalidListingStateException(status, "approve");

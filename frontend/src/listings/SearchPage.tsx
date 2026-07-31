@@ -25,6 +25,8 @@ export function SearchPage({ onBooked }: { onBooked?: () => void } = {}) {
   const [warehouseType, setWarehouseType] = useState<(typeof WAREHOUSE_TYPES)[number]>("");
   const [minSizeSqm, setMinSizeSqm] = useState("");
   const [maxSizeSqm, setMaxSizeSqm] = useState("");
+  const [availableFrom, setAvailableFrom] = useState("");
+  const [availableUntil, setAvailableUntil] = useState("");
   const [results, setResults] = useState<ListingSearchResult[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [searching, setSearching] = useState(false);
@@ -85,6 +87,8 @@ export function SearchPage({ onBooked }: { onBooked?: () => void } = {}) {
       if (warehouseType) params.set("warehouseType", warehouseType);
       if (minSizeSqm) params.set("minSizeSqm", minSizeSqm);
       if (maxSizeSqm) params.set("maxSizeSqm", maxSizeSqm);
+      if (availableFrom) params.set("availableFrom", availableFrom);
+      if (availableUntil) params.set("availableUntil", availableUntil);
 
       const response = await apiFetch(`/listings/search?${params.toString()}`);
       if (!response.ok) {
@@ -124,6 +128,14 @@ export function SearchPage({ onBooked }: { onBooked?: () => void } = {}) {
         <label>
           Max size (sqm)
           <input type="number" min="0" step="0.01" value={maxSizeSqm} onChange={(e) => setMaxSizeSqm(e.target.value)} />
+        </label>
+        <label>
+          Available from
+          <input type="date" value={availableFrom} onChange={(e) => setAvailableFrom(e.target.value)} />
+        </label>
+        <label>
+          Available until
+          <input type="date" value={availableUntil} onChange={(e) => setAvailableUntil(e.target.value)} />
         </label>
         <button type="submit" disabled={searching}>
           {searching ? "Searching..." : "Search"}

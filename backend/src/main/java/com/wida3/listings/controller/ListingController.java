@@ -3,11 +3,14 @@ package com.wida3.listings.controller;
 import com.wida3.listings.dto.CreateListingRequest;
 import com.wida3.listings.dto.ListingResponse;
 import com.wida3.listings.dto.RejectListingRequest;
+import com.wida3.listings.dto.UpdateListingRequest;
 import com.wida3.listings.service.ListingService;
 import jakarta.validation.Valid;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -16,6 +19,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -36,8 +40,11 @@ public class ListingController {
             @RequestParam(required = false) String city,
             @RequestParam(required = false) String warehouseType,
             @RequestParam(required = false) BigDecimal minSizeSqm,
-            @RequestParam(required = false) BigDecimal maxSizeSqm) {
-        return ResponseEntity.ok(listingService.search(city, warehouseType, minSizeSqm, maxSizeSqm));
+            @RequestParam(required = false) BigDecimal maxSizeSqm,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate availableFrom,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate availableUntil) {
+        return ResponseEntity.ok(
+                listingService.search(city, warehouseType, minSizeSqm, maxSizeSqm, availableFrom, availableUntil));
     }
 
     @PreAuthorize("hasRole('OWNER')")
@@ -46,6 +53,25 @@ public class ListingController {
             @Valid @RequestBody CreateListingRequest request, Authentication authentication) {
         ListingResponse response = listingService.create(authentication.getName(), request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @PreAuthorize("hasRole('OWNER')")
+    @GetMapping("/mine")
+    public ResponseEntity<List<ListingResponse>> mine(Authentication authentication) {
+        return ResponseEntity.ok(listingService.mine(authentication.getName()));
+    }
+
+    @PreAuthorize("hasRole('OWNER')")
+    @PutMapping("/{id}")
+    public ResponseEntity<ListingResponse> update(
+            @PathVariable UUID id, @Valid @RequestBody UpdateListingRequest request, Authentication authentication) {
+        return ResponseEntity.ok(listingService.update(authentication.getName(), id, request));
+    }
+
+    @PreAuthorize("hasRole('OWNER')")
+    @PatchMapping("/{id}/deactivate")
+    public ResponseEntity<ListingResponse> deactivate(@PathVariable UUID id, Authentication authentication) {
+        return ResponseEntity.ok(listingService.deactivate(authentication.getName(), id));
     }
 
     @PreAuthorize("hasRole('ADMIN')")

@@ -4,12 +4,14 @@ import { useAuth } from "../auth/AuthContext";
 import { MyBookings } from "../bookings/MyBookings";
 import { AdminApprovalQueue } from "../listings/AdminApprovalQueue";
 import { CreateListingForm } from "../listings/CreateListingForm";
+import { MyListings } from "../listings/MyListings";
 import { SearchPage } from "../listings/SearchPage";
 
 export function DashboardPage() {
   const { user, logout } = useAuth();
   const [refreshResult, setRefreshResult] = useState<string | null>(null);
   const [bookingsVersion, setBookingsVersion] = useState(0);
+  const [listingsVersion, setListingsVersion] = useState(0);
 
   async function handleForceRefresh() {
     // Manually exercises the silent-refresh path for verification (real 401-triggered
@@ -25,7 +27,12 @@ export function DashboardPage() {
       <button onClick={handleForceRefresh}>Force refresh</button>
       {refreshResult && <p>{refreshResult}</p>}
       <button onClick={() => logout()}>Log out</button>
-      {user?.roles.includes("OWNER") && <CreateListingForm />}
+      {user?.roles.includes("OWNER") && (
+        <>
+          <CreateListingForm onCreated={() => setListingsVersion((v) => v + 1)} />
+          <MyListings key={listingsVersion} />
+        </>
+      )}
       {user?.roles.includes("ADMIN") && <AdminApprovalQueue />}
       <MyBookings key={bookingsVersion} />
       <SearchPage onBooked={() => setBookingsVersion((v) => v + 1)} />

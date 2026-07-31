@@ -427,6 +427,177 @@ class ListingControllerIntegrationTest {
     }
 
     @Test
+    void owner_seesOwnListingsAcrossStatuses_otherOwnerDoesNot() {
+        String ownerEmail = "owner19@example.com";
+        String ownerToken = registerAndGetToken(ownerEmail, Set.of("OWNER"));
+        HttpHeaders ownerHeaders = authHeaders(ownerToken);
+        restTemplate.exchange(
+                url("/api/v1/listings"), HttpMethod.POST, new HttpEntity<>(validListingBody(List.of()), ownerHeaders), Map.class);
+        restTemplate.exchange(
+                url("/api/v1/listings"), HttpMethod.POST, new HttpEntity<>(validListingBody(List.of()), ownerHeaders), Map.class);
+
+        ResponseEntity<List> mine =
+                restTemplate.exchange(url("/api/v1/listings/mine"), HttpMethod.GET, new HttpEntity<>(ownerHeaders), List.class);
+        assertThat(mine.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(mine.getBody()).hasSize(2);
+
+        String otherOwnerToken = registerAndGetToken("owner20@example.com", Set.of("OWNER"));
+        ResponseEntity<List> otherMine = restTemplate.exchange(
+                url("/api/v1/listings/mine"), HttpMethod.GET, new HttpEntity<>(authHeaders(otherOwnerToken)), List.class);
+        assertThat(otherMine.getBody()).isEmpty();
+    }
+
+    @Test
+    void owner_updatesOwnListing_fieldsChange() {
+        String listingId = createPendingListing("owner21@example.com");
+        // createPendingListing registers its own account and doesn't return the token, so log back in for one.
+        ResponseEntity<Map> loginResponse = restTemplate.postForEntity(
+                url("/api/v1/auth/login"),
+                Map.of("email", "owner21@example.com", "password", "correcthorsebattery"),
+                Map.class);
+        String token = (String) loginResponse.getBody().get("accessToken");
+
+        Map<String, Object> update = Map.of(
+                "title", "Updated title",
+                "city", "Rabat",
+                "address", "9 Nouvelle Adresse",
+                "warehouseType", "COLD",
+                "sizeSqm", 500.0,
+                "weeklyPrice", 900.0);
+
+        ResponseEntity<Map> response = restTemplate.exchange(
+                url("/api/v1/listings/" + listingId), HttpMethod.PUT, new HttpEntity<>(update, authHeaders(token)), Map.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody().get("title")).isEqualTo("Updated title");
+        assertThat(response.getBody().get("city")).isEqualTo("Rabat");
+        assertThat(response.getBody().get("warehouseType")).isEqualTo("COLD");
+    }
+
+    @Test
+    void nonOwner_cannotUpdateSomeoneElsesListing_returnsForbidden() {
+        String listingId = createPendingListing("owner22@example.com");
+        String otherOwnerToken = registerAndGetToken("owner23@example.com", Set.of("OWNER"));
+
+        ResponseEntity<Map> response = restTemplate.exchange(
+                url("/api/v1/listings/" + listingId),
+                HttpMethod.PUT,
+                new HttpEntity<>(new java.util.HashMap<>(validListingBody(List.of())), authHeaders(otherOwnerToken)),
+                Map.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+    }
+
+    @Test
+    void updatingUnknownListing_returnsNotFound() {
+        String ownerToken = registerAndGetToken("owner24@example.com", Set.of("OWNER"));
+
+        ResponseEntity<Map> response = restTemplate.exchange(
+                url("/api/v1/listings/" + java.util.UUID.randomUUID()),
+                HttpMethod.PUT,
+                new HttpEntity<>(new java.util.HashMap<>(validListingBody(List.of())), authHeaders(ownerToken)),
+                Map.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+    }
+
+    @Test
+    void owner_deactivatesOwnListing_becomesInactiveAndExcludedFromSearch() {
+        String city = "SearchCityC-" + java.util.UUID.randomUUID();
+        String ownerToken = registerAndGetToken("owner25@example.com", Set.of("OWNER"));
+        HttpHeaders ownerHeaders = authHeaders(ownerToken);
+        Map<String, Object> body = new java.util.HashMap<>(validListingBody(List.of()));
+        body.put("city", city);
+        ResponseEntity<Map> createResponse = restTemplate.exchange(
+                url("/api/v1/listings"), HttpMethod.POST, new HttpEntity<>(body, ownerHeaders), Map.class);
+        String listingId = (String) createResponse.getBody().get("id");
+        activateListing(listingId);
+
+        ResponseEntity<Map> deactivateResponse = restTemplate.exchange(
+                url("/api/v1/listings/" + listingId + "/deactivate"),
+                HttpMethod.PATCH,
+                new HttpEntity<>(null, ownerHeaders),
+                Map.class);
+        assertThat(deactivateResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(deactivateResponse.getBody().get("status")).isEqualTo("INACTIVE");
+
+        ResponseEntity<List> searchResponse =
+                restTemplate.getForEntity(url("/api/v1/listings/search?city=" + city), List.class);
+        assertThat(searchResponse.getBody()).isEmpty();
+    }
+
+    @Test
+    void deactivatingAlreadyInactiveListing_returnsConflict() {
+        String ownerToken = registerAndGetToken("owner26@example.com", Set.of("OWNER"));
+        HttpHeaders ownerHeaders = authHeaders(ownerToken);
+        ResponseEntity<Map> createResponse = restTemplate.exchange(
+                url("/api/v1/listings"), HttpMethod.POST, new HttpEntity<>(validListingBody(List.of()), ownerHeaders), Map.class);
+        String listingId = (String) createResponse.getBody().get("id");
+
+        restTemplate.exchange(
+                url("/api/v1/listings/" + listingId + "/deactivate"),
+                HttpMethod.PATCH,
+                new HttpEntity<>(null, ownerHeaders),
+                Map.class);
+        ResponseEntity<Map> secondDeactivate = restTemplate.exchange(
+                url("/api/v1/listings/" + listingId + "/deactivate"),
+                HttpMethod.PATCH,
+                new HttpEntity<>(null, ownerHeaders),
+                Map.class);
+
+        assertThat(secondDeactivate.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+    }
+
+    @Test
+    void nonOwner_cannotDeactivateSomeoneElsesListing_returnsForbidden() {
+        String listingId = createPendingListing("owner27@example.com");
+        String otherOwnerToken = registerAndGetToken("owner28@example.com", Set.of("OWNER"));
+
+        ResponseEntity<Map> response = restTemplate.exchange(
+                url("/api/v1/listings/" + listingId + "/deactivate"),
+                HttpMethod.PATCH,
+                new HttpEntity<>(null, authHeaders(otherOwnerToken)),
+                Map.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+    }
+
+    @Test
+    void search_availabilityFilter_excludesListingsWithOverlappingConfirmedBooking() {
+        String city = "SearchCityD-" + java.util.UUID.randomUUID();
+        String ownerToken = registerAndGetToken("owner29@example.com", Set.of("OWNER"));
+        HttpHeaders ownerHeaders = authHeaders(ownerToken);
+        Map<String, Object> body = new java.util.HashMap<>(validListingBody(List.of()));
+        body.put("city", city);
+        body.put("weeklyPrice", 1000.0); // avoid the mock gateway's magic-decline cent values
+        ResponseEntity<Map> createResponse = restTemplate.exchange(
+                url("/api/v1/listings"), HttpMethod.POST, new HttpEntity<>(body, ownerHeaders), Map.class);
+        String listingId = (String) createResponse.getBody().get("id");
+        activateListing(listingId);
+
+        java.time.LocalDate bookedStart = java.time.LocalDate.now().plusDays(200);
+        java.time.LocalDate bookedEnd = bookedStart.plusDays(7);
+        String renterToken = registerAndGetToken("renter29@example.com", Set.of());
+        Map<String, Object> bookingBody = Map.of(
+                "listingId", listingId, "startDate", bookedStart.toString(), "endDate", bookedEnd.toString());
+        ResponseEntity<Map> bookingResponse = restTemplate.exchange(
+                url("/api/v1/bookings"), HttpMethod.POST, new HttpEntity<>(bookingBody, authHeaders(renterToken)), Map.class);
+        assertThat(bookingResponse.getBody().get("status")).isEqualTo("CONFIRMED");
+
+        ResponseEntity<List> overlapping = restTemplate.getForEntity(
+                url("/api/v1/listings/search?city=" + city + "&availableFrom=" + bookedStart + "&availableUntil=" + bookedEnd),
+                List.class);
+        assertThat(overlapping.getBody()).isEmpty();
+
+        java.time.LocalDate freeStart = bookedEnd.plusDays(1);
+        java.time.LocalDate freeEnd = freeStart.plusDays(7);
+        ResponseEntity<List> nonOverlapping = restTemplate.getForEntity(
+                url("/api/v1/listings/search?city=" + city + "&availableFrom=" + freeStart + "&availableUntil=" + freeEnd),
+                List.class);
+        assertThat(nonOverlapping.getBody()).hasSize(1);
+    }
+
+    @Test
     void upload_asRenterOnly_returnsForbidden() {
         String token = registerAndGetToken("renter2@example.com", Set.of());
 
