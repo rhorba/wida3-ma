@@ -6,6 +6,17 @@ import { fileURLToPath } from "node:url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PASSWORD = "Sprint2DemoPass!";
 
+// Local dev DB runs in a container named wida3-dev-postgres, reached via `docker exec`.
+// CI's Postgres is a plain service container on localhost, so it sets E2E_DB_EXEC to a
+// TCP-based psql invocation instead (see .github/workflows/ci.yml, job "e2e").
+const DB_EXEC = process.env.E2E_DB_EXEC ?? "docker exec wida3-dev-postgres psql -U wida3_app -d wida3";
+
+function promoteToAdmin(email: string) {
+  execSync(
+    `${DB_EXEC} -c "INSERT INTO user_roles (user_id, role_id) SELECT u.id, r.id FROM users u, roles r WHERE u.email='${email}' AND r.name='ADMIN';"`,
+  );
+}
+
 async function registerOwnerAndCreateListing(page: Page, email: string, city: string, title: string) {
   await page.goto("/");
   await page.getByRole("button", { name: "Register" }).click();
@@ -89,9 +100,7 @@ test("admin approves one listing and rejects another; only the approved one is p
   await expect(page.getByRole("heading", { name: `Logged in as ${adminEmail}` })).toBeVisible();
   await page.getByRole("button", { name: "Log out" }).click();
 
-  execSync(
-    `docker exec wida3-dev-postgres psql -U wida3_app -d wida3 -c "INSERT INTO user_roles (user_id, role_id) SELECT u.id, r.id FROM users u, roles r WHERE u.email='${adminEmail}' AND r.name='ADMIN';"`,
-  );
+  promoteToAdmin(adminEmail);
 
   await page.goto("/");
   await page.getByRole("button", { name: "Log in" }).click();
@@ -139,9 +148,7 @@ test("renter books an approved listing, sees the access code, then cancels the b
   await expect(page.getByRole("heading", { name: `Logged in as ${adminEmail}` })).toBeVisible();
   await page.getByRole("button", { name: "Log out" }).click();
 
-  execSync(
-    `docker exec wida3-dev-postgres psql -U wida3_app -d wida3 -c "INSERT INTO user_roles (user_id, role_id) SELECT u.id, r.id FROM users u, roles r WHERE u.email='${adminEmail}' AND r.name='ADMIN';"`,
-  );
+  promoteToAdmin(adminEmail);
 
   await page.goto("/");
   await page.getByRole("button", { name: "Log in" }).click();
