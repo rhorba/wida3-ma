@@ -66,3 +66,6 @@ User asked to end the session after the mock payment gateway work. Shipped: Mock
 No dev servers were left running this leg (only backend test suite via Maven was used, no manual dev-server session). wida3-dev-postgres container still running from earlier in the day (disposable, safe to leave).
 Open items carried forward (unchanged, still flagged): no CI pipeline configured; Epic 5 (real payment gateway, real object storage) remains pre-launch/not-yet-scheduled per docs/stories-wida3-ma.md.
 Next session: pick next scope -- CI pipeline setup, Epic 5 readiness, or user's next priority.
+
+## SESSION_START — 2026-07-30
+Resuming per last SESSION_END (mock payment gateway shipped, working tree clean, all pushed). User chose to pick up the CI pipeline open item this session (over Epic 5 readiness).

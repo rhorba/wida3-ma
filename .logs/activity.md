@@ -123,3 +123,12 @@ Replaced the single hardcoded decline message with three distinct, deterministic
 V7 migration adds payments.failure_reason; Payment entity carries it; BookingService now persists and surfaces the actual PaymentResult.failureReason instead of a hardcoded string (this was a latent bug -- the field existed in PaymentResult since Sprint 3 but was being discarded).
 Added a QA mapping table to docs/architecture-wida3-ma.md next to ADR-5.
 New tests: MockPaymentServiceImplTest (6 unit tests, one per branch) + 1 new booking integration test asserting the specific reason surfaces end-to-end. Full backend suite: 72/72 tests passing, 88% instruction coverage (JaCoCo, JDK 21). Gate (>=80%) met.
+
+## 2026-07-31 — PLAN: Comprehensive CI pipeline
+📋 BATCH 1: Foundation -- .github/workflows/ci.yml, backend job (setup-java 21 + mvn verify w/ dummy test env vars), frontend job (npm ci + oxlint + tsc/build)
+📋 BATCH 2: Coverage gate (JaCoCo >=80%) + security scanning (gitleaks secrets, trivy fs SCA, Semgrep SAST)
+📋 BATCH 3: Playwright e2e-in-CI (Postgres service, backend+frontend live, critical-flows.spec.ts, artifact upload)
+📋 BATCH 4: Ship -- push to origin/main, gh run watch until green, log, ask user before any branch-protection change
+
+## 2026-07-31 — EXECUTE Batch 1: CI foundation
+Created .github/workflows/ci.yml with backend job (JDK 21 via setup-java, `mvn -B verify`) and frontend job (npm ci, oxlint, tsc+vite build). No env vars needed for the backend job -- confirmed all four integration test classes already supply spring.datasource.url/DB_USER/DB_PASSWORD/app.jwt.secret via @DynamicPropertySource against their own Testcontainers Postgres instance.

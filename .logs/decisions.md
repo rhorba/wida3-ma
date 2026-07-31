@@ -33,3 +33,6 @@ Epic 3 (Booking & Payment) approach: Comprehensive tier chosen over Simple/Balan
 
 ## Decision — 2026-07-28
 Mock payment gateway realistic failure scenarios: Comprehensive tier chosen. Trigger mechanism: fractional cents of the total booking price (weeklyPrice x weeks) -- .13 = insufficient funds, .66 = card declined, .99 = simulated gateway timeout (real delay). Whole-dollar/other-cent amounts succeed as today (or fail globally if app.payment.mock.always-succeed=false, unchanged). No card-entry field exists anywhere in the app (by design, per ADR-5), so amount is the only per-request signal available without adding new API surface.
+
+## 2026-07-30 — BRAINSTORM: CI pipeline tier
+Chose COMPREHENSIVE: build+test+coverage gate (JaCoCo 80%) + secrets scan (gitleaks) + SCA (trivy fs) + SAST (Semgrep OWASP) + Playwright e2e-in-CI with live Postgres service. Rejected container/IaC/SBOM/cosign scanning from the reference doc as not applicable yet -- no Dockerfile or cloud infra exists (YAGNI).
