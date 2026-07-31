@@ -69,3 +69,13 @@ Next session: pick next scope -- CI pipeline setup, Epic 5 readiness, or user's 
 
 ## SESSION_START — 2026-07-30
 Resuming per last SESSION_END (mock payment gateway shipped, working tree clean, all pushed). User chose to pick up the CI pipeline open item this session (over Epic 5 readiness).
+
+## SESSION_END — 2026-07-31 (CI pipeline, mid-batch)
+User asked to end the session after Batch 1 of the Comprehensive CI plan. Committed locally (d88fb2f), NOT pushed -- deliberately holding, since pushing would open a mandatory CI-monitoring obligation (rule 11: watch every push to green) that can't be fulfilled if the session ends here, and this workflow file has never run against live Actions yet.
+Done: .github/workflows/ci.yml with backend job (JDK 21, `mvn -B verify`) and frontend job (npm ci, oxlint, tsc+vite build). Confirmed no env vars are needed for the backend job -- all 4 integration test classes already supply datasource/JWT config via @DynamicPropertySource against their own Testcontainers Postgres.
+Resume point: Batch 2 of .logs/decisions.md's Comprehensive plan --
+  Batch 2: JaCoCo coverage check bound to `mvn verify` (fail if instruction coverage < 80%), gitleaks secrets-scan job, trivy fs SCA job, Semgrep SAST job (p/owasp-top-ten)
+  Batch 3: Playwright e2e-in-CI job (Postgres service container, live backend+frontend on default port 8080/5176-strictPort, run critical-flows.spec.ts, upload video artifact)
+  Batch 4: Ship -- push to origin/main, `gh run watch` until green (fix+repush per rule 11 if red), log, then ask user separately before any branch-protection change
+Note: an untracked `bash.exe.stackdump` file exists in the repo root (not created by this session's committed work, left as-is -- not mine to decide whether to delete).
+Working tree: clean except the untracked stackdump file. No dev servers running.
